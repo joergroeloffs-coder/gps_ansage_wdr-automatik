@@ -78,6 +78,7 @@ const state = {
   watchId: null,
   lastFix: null,  // {lat, lon, t}
   selectedVoice: null,
+  wakeLock: null,
 };
 
 function log(el, msg) {
@@ -399,6 +400,36 @@ function handlePosition(lat, lon, timestamp, reportedSpeedMs) {
   state.lastFix = { lat, lon, t: timestamp };
 }
 
+// Verhindert, dass sich der Bildschirm während des Trackings von selbst
+// abschaltet (Screen Wake Lock API). Wird der Lock vom System entzogen
+// (z.B. Tab kurz in den Hintergrund), holen wir ihn beim Wiedersichtbarwerden
+// automatisch erneut, solange getrackt wird.
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    log(document.getElementById('secondaryLog'), 'Wach-Halten nicht unterstützt – Bildschirm kann sich während der Fahrt selbst abschalten.');
+    return;
+  }
+  try {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+  } catch (err) {
+    log(document.getElementById('secondaryLog'), 'Wach-Halten konnte nicht aktiviert werden: ' + err.message);
+  }
+}
+
+function releaseWakeLock() {
+  if (state.wakeLock) {
+    state.wakeLock.release();
+    state.wakeLock = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.watchId !== null && !state.wakeLock) {
+    acquireWakeLock();
+  }
+});
+
 function startTracking() {
   if (document.getElementById('testMode').checked) {
     document.getElementById('globalStatus').textContent = 'Testmodus aktiv – manuelle Werte werden verwendet.';
@@ -413,6 +444,7 @@ function startTracking() {
     err => { document.getElementById('globalStatus').textContent = 'GPS-Fehler: ' + err.message; },
     { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
   );
+  acquireWakeLock();
 }
 
 function stopTracking() {
@@ -420,6 +452,7 @@ function stopTracking() {
     navigator.geolocation.clearWatch(state.watchId);
     state.watchId = null;
   }
+  releaseWakeLock();
   document.getElementById('globalStatus').textContent = 'Tracking gestoppt.';
 }
 

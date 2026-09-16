@@ -9,6 +9,8 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 2. Standortzugriff erlauben.
 3. "GPS-Tracking starten" drücken.
 
+**Wichtig:** Die Seite muss während der Fahrt im Vordergrund geöffnet bleiben (nicht in den Hintergrund schicken, Handy nicht sperren) – Browser pausieren GPS und Sprachausgabe sonst. Die App aktiviert beim Start automatisch einen Wake Lock, der das Display wach hält, solange getrackt wird (unterstützt von Chrome/Edge auf Android; Safari/iOS unterstützt das aktuell nicht – dort Display-Sperre manuell deaktivieren).
+
 ## Konfiguration (`stations.json`)
 
 - `textTemplates.arrival`: Objekt mit einer Vorlage je Anleger-Typ – `ohneSeitenausstieg` und `mitSeitenausstieg`. Platzhalter `{hafen}` wird automatisch durch den Stationsnamen ersetzt. Fehlt eine Vorlage (z.B. `mitSeitenausstieg: null`), wird für Stationen ohne eigenen Text keine Ansage abgespielt (siehe Log-Hinweis).
