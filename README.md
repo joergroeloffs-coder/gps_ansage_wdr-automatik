@@ -43,7 +43,29 @@ Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Lea
 
 - **Einlaufen**: klassische Geofence-Annäherung — sobald die Distanz zum Hafen den Annäherungsradius unterschreitet, wird die Ansage einmalig abgespielt. Erst wenn das Schiff die Zone wieder deutlich verlässt, wird der Trigger erneut "scharf geschaltet" (Hysterese).
 - **Ablegen**: dynamische Anker-Erkennung, unabhängig von vorgegebenen Koordinaten. Bleibt das Schiff länger als `stableDurationMinutes` innerhalb von `stableRadiusMeters` an einer Position, gilt diese Position als Ablege-Anker ("angelegt"). Entfernt sich das Schiff danach innerhalb von `departureWindowMinutes` um mehr als `departureRadiusMeters` von diesem Anker, wird die Ablege-Ansage ausgelöst. Entfernt es sich stattdessen langsam über einen längeren Zeitraum (z.B. Drift durch Tide/Wind), wird nichts ausgelöst und die Erkennung setzt sich zurück.
-- **Sprachausgabe**: über die Web Speech API (geräteeigene TTS-Engine des Browsers/Betriebssystems), funktioniert offline. Oben im UI kann unter "Stimme für Ansagen" zwischen allen auf dem Gerät installierten Stimmen gewählt werden – die Qualität (Klang, Betonung) hängt stark von der gewählten Stimme ab. Auf Android lassen sich über die Systemeinstellungen ("Sprachausgabe" bzw. "Google Text-in-Sprache") oft zusätzliche, deutlich natürlicher klingende Stimmen nachinstallieren, die dann hier zur Auswahl stehen.
+- **Sprachausgabe**: Es wird immer zuerst versucht, eine vorproduzierte Audiodatei aus dem Ordner `audio/` abzuspielen (siehe unten). Existiert die Datei nicht, fällt die App automatisch auf die Web Speech API (geräteeigene TTS-Engine) zurück – dabei kann oben im UI unter "Stimme für Ansagen" zwischen den auf dem Gerät installierten deutschen Stimmen gewählt werden. Das ist nur ein Notbehelf: Qualität und Akzent hängen stark vom Gerät ab.
+
+## Vorproduzierte Audiodateien (`audio/`)
+
+Für gleichbleibend gute, akzentfreie Ansagen legt ihr die Texte einmalig als MP3 ab (z.B. erzeugt über Azure Speech Studio, ElevenLabs oder Google Cloud TTS – alle bieten kostenlose Testkontingente – oder als echte Sprachaufnahme). Die Dateien müssen exakt so heißen und im Ordner `audio/` liegen:
+
+| Datei | Inhalt |
+|---|---|
+| `arrival_dagebuell_ohneSeitenausstieg.mp3` | Einlaufen Dagebüll, ohne Seitenausstieg |
+| `arrival_dagebuell_mitSeitenausstieg.mp3` | Einlaufen Dagebüll, mit Seitenausstieg |
+| `arrival_wyk-auf-foehr_ohneSeitenausstieg.mp3` | Einlaufen Wyk auf Föhr, ohne Seitenausstieg |
+| `arrival_wyk-auf-foehr_mitSeitenausstieg.mp3` | Einlaufen Wyk auf Föhr, mit Seitenausstieg |
+| `arrival_wittduen-auf-amrum_ohneSeitenausstieg.mp3` | Einlaufen Wittdün auf Amrum, ohne Seitenausstieg |
+| `arrival_wittduen-auf-amrum_mitSeitenausstieg.mp3` | Einlaufen Wittdün auf Amrum, mit Seitenausstieg |
+| `departure_dagebuell.mp3` | Ablegen Dagebüll |
+| `departure_wyk-auf-foehr.mp3` | Ablegen Wyk auf Föhr |
+| `departure_wittduen-auf-amrum.mp3` | Ablegen Wittdün auf Amrum |
+| `departure_generic.mp3` | Ablegen, falls kein Hafen zugeordnet werden konnte |
+| `secondary_autodeck_freigabe.mp3` | Manuelle Zusatzansage "Autodeck-Freigabe" |
+
+Die exakten Texte für jede Datei stehen in `stations.json` (`arrival.texts`, `textTemplates`, `secondaryAnnouncements` – Platzhalter `{hafen}` durch den jeweiligen Hafennamen ersetzen). Hochladen entweder per `git`, oder direkt über die GitHub-Weboberfläche: Ordner `audio/` öffnen → "Add file" → "Upload files" → Dateien reinziehen → Commit.
+
+Fehlt eine Datei (z.B. noch nicht produziert), spielt die App automatisch die Gerätestimme mit dem Text ab und vermerkt das im Log – nichts bricht dadurch ab.
 
 ## Testmodus
 

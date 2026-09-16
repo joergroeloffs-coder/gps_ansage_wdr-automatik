@@ -112,6 +112,17 @@ function departureText(stationCfg) {
   return departureConfig().genericText;
 }
 
+// Dateinamen-Konvention für vorproduzierte Audiodateien (Ordner "audio/").
+// Existiert die Datei nicht (404), wird automatisch auf Live-TTS (Gerätestimme)
+// mit dem passenden Text zurückgefallen.
+function arrivalAudioUrl(stationCfg, berthType) {
+  return `audio/arrival_${stationCfg.id}_${berthType}.mp3`;
+}
+function departureAudioUrl(stationCfg) {
+  return stationCfg ? `audio/departure_${stationCfg.id}.mp3` : `audio/departure_generic.mp3`;
+}
+const AUTODECK_AUDIO_URL = 'audio/secondary_autodeck_freigabe.mp3';
+
 function speak(text) {
   if (!('speechSynthesis' in window)) {
     alert('Sprachausgabe wird von diesem Browser nicht unterstützt.');
@@ -124,9 +135,32 @@ function speak(text) {
   window.speechSynthesis.speak(utter);
 }
 
-// Stimmenauswahl: listet alle auf dem Gerät installierten Stimmen (bevorzugt
-// deutsche zuerst), damit man die verständlichste/angenehmste auswählen kann.
-// Manche Browser liefern die Liste erst asynchron über "voiceschanged".
+// Spielt bevorzugt eine vorproduzierte Audiodatei ab (bessere, konstante
+// Stimmqualität). Existiert die Datei nicht, fällt es automatisch auf die
+// Live-Sprachausgabe (Gerätestimme) mit dem übergebenen Text zurück.
+function playAnnouncement(audioUrl, fallbackText, logEl, label) {
+  let handled = false;
+  const fallback = () => {
+    if (handled) return;
+    handled = true;
+    if (fallbackText) {
+      speak(fallbackText);
+      log(logEl, `${label}: Audiodatei "${audioUrl}" nicht gefunden – Sprachausgabe (Gerätestimme) verwendet.`);
+    } else {
+      log(logEl, `${label}: weder Audiodatei noch Text hinterlegt – keine Ansage möglich.`);
+    }
+  };
+  const audio = new Audio(audioUrl);
+  audio.addEventListener('error', fallback);
+  audio.play().then(() => {
+    if (!handled) { handled = true; log(logEl, `${label}: Audiodatei abgespielt (${audioUrl}).`); }
+  }).catch(fallback);
+}
+
+// Stimmenauswahl (nur als Fallback relevant, wenn keine Audiodatei vorliegt):
+// zeigt ausschließlich deutsche Stimmen, damit keine Akzent-Ausreißer aus
+// anderen Sprachen zur Wahl stehen. Manche Browser liefern die Liste erst
+// asynchron über "voiceschanged".
 function populateVoiceList() {
   const select = document.getElementById('voiceSelect');
   const voices = window.speechSynthesis.getVoices();
@@ -134,26 +168,20 @@ function populateVoiceList() {
 
   const previousValue = select.value;
   select.innerHTML = '';
-  const sorted = [...voices].sort((a, b) => {
-    const aDe = a.lang.toLowerCase().startsWith('de') ? 0 : 1;
-    const bDe = b.lang.toLowerCase().startsWith('de') ? 0 : 1;
-    return aDe - bDe || a.name.localeCompare(b.name);
-  });
-  sorted.forEach(v => {
+  const german = voices
+    .filter(v => v.lang.toLowerCase().startsWith('de'))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const list = german.length ? german : voices;
+  list.forEach(v => {
     const opt = document.createElement('option');
     opt.value = v.voiceURI;
     opt.textContent = `${v.name} (${v.lang})`;
     select.appendChild(opt);
   });
 
-  const stillExists = sorted.some(v => v.voiceURI === previousValue);
-  if (stillExists) {
-    select.value = previousValue;
-  } else {
-    const firstGerman = sorted.find(v => v.lang.toLowerCase().startsWith('de'));
-    select.value = (firstGerman || sorted[0]).voiceURI;
-  }
-  state.selectedVoice = sorted.find(v => v.voiceURI === select.value) || null;
+  const stillExists = list.some(v => v.voiceURI === previousValue);
+  select.value = stillExists ? previousValue : list[0].voiceURI;
+  state.selectedVoice = list.find(v => v.voiceURI === select.value) || null;
 }
 
 function bindVoiceSelect() {
@@ -206,20 +234,12 @@ function renderStations() {
     });
     div.querySelectorAll('.previewBtn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const text = arrivalText(s, btn.dataset.berth);
-        const logEl = div.querySelector('.log');
-        if (text) {
-          speak(text);
-          log(logEl, 'Vorhören (' + btn.dataset.berth + '): ' + text);
-        } else {
-          log(logEl, `Kein Ansagetext für "${btn.dataset.berth}" hinterlegt.`);
-        }
+        const berth = btn.dataset.berth;
+        playAnnouncement(arrivalAudioUrl(s, berth), arrivalText(s, berth), div.querySelector('.log'), 'Vorhören Einlaufen (' + berth + ')');
       });
     });
     div.querySelector('.previewDepartureBtn').addEventListener('click', () => {
-      const text = departureText(s);
-      speak(text);
-      log(div.querySelector('.log'), 'Vorhören (Ablegen): ' + text);
+      playAnnouncement(departureAudioUrl(s), departureText(s), div.querySelector('.log'), 'Vorhören Ablegen');
     });
     container.appendChild(div);
   });
@@ -235,13 +255,12 @@ function evaluateArrival(stationCfg, distance) {
   const arrRadius = stationCfg.arrival.radiusMeters;
 
   if (distance <= arrRadius && st.armedArrival) {
-    const text = arrivalText(stationCfg, st.berthType);
-    if (text) {
-      speak(text);
-      log(el.querySelector('.log'), 'Einlaufen-Ansage ausgelöst: ' + text);
-    } else {
-      log(el.querySelector('.log'), `Kein Ansagetext für Anleger "${st.berthType}" hinterlegt – keine Ansage abgespielt.`);
-    }
+    playAnnouncement(
+      arrivalAudioUrl(stationCfg, st.berthType),
+      arrivalText(stationCfg, st.berthType),
+      el.querySelector('.log'),
+      'Einlaufen-Ansage'
+    );
     st.armedArrival = false;
     arrivalBadge.textContent = 'Einlaufen: ausgelöst';
     arrivalBadge.className = 'badge triggered arrivalBadge';
@@ -340,9 +359,7 @@ function processDeparture(lat, lon, t) {
   const wasNearRecently = dep.buffer.some(entry => entry.distance <= cfg.stableRadius);
 
   if (d > cfg.departureRadius && wasNearRecently) {
-    const text = departureText(dep.matchedStation);
-    speak(text);
-    log(logEl, 'Ablege-Ansage ausgelöst: ' + text);
+    playAnnouncement(departureAudioUrl(dep.matchedStation), departureText(dep.matchedStation), logEl, 'Ablege-Ansage');
     resetDepartureTracking({ lat, lon, t });
   } else if (d > cfg.departureRadius && !wasNearRecently) {
     log(logEl, 'Position langsam verlassen (kein Ablegen erkannt) – Erkennung wird zurückgesetzt.');
@@ -433,12 +450,7 @@ document.getElementById('testTtsBtn').addEventListener('click', () => speak('Die
 document.getElementById('autodeckBtn').addEventListener('click', () => {
   const text = (state.config.secondaryAnnouncements || {}).autodeckFreigabe;
   const el = document.getElementById('secondaryLog');
-  if (text) {
-    speak(text);
-    log(el, 'Autodeck-Freigabe ausgelöst: ' + text);
-  } else {
-    log(el, 'Kein Text für Autodeck-Freigabe hinterlegt.');
-  }
+  playAnnouncement(AUTODECK_AUDIO_URL, text, el, 'Autodeck-Freigabe');
 });
 
 bindVoiceSelect();
