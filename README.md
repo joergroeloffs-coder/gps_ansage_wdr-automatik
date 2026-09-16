@@ -43,7 +43,7 @@ Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Lea
 
 - **Einlaufen**: klassische Geofence-Annäherung — sobald die Distanz zum Hafen den Annäherungsradius unterschreitet, wird die Ansage einmalig abgespielt. Erst wenn das Schiff die Zone wieder deutlich verlässt, wird der Trigger erneut "scharf geschaltet" (Hysterese).
 - **Ablegen**: dynamische Anker-Erkennung, unabhängig von vorgegebenen Koordinaten. Bleibt das Schiff länger als `stableDurationMinutes` innerhalb von `stableRadiusMeters` an einer Position, gilt diese Position als Ablege-Anker ("angelegt"). Entfernt sich das Schiff danach innerhalb von `departureWindowMinutes` um mehr als `departureRadiusMeters` von diesem Anker, wird die Ablege-Ansage ausgelöst. Entfernt es sich stattdessen langsam über einen längeren Zeitraum (z.B. Drift durch Tide/Wind), wird nichts ausgelöst und die Erkennung setzt sich zurück.
-- **Sprachausgabe**: über die Web Speech API (geräteeigene TTS-Engine des Browsers/Betriebssystems), funktioniert offline.
+- **Sprachausgabe**: über die Web Speech API (geräteeigene TTS-Engine des Browsers/Betriebssystems), funktioniert offline. Oben im UI kann unter "Stimme für Ansagen" zwischen allen auf dem Gerät installierten Stimmen gewählt werden – die Qualität (Klang, Betonung) hängt stark von der gewählten Stimme ab. Auf Android lassen sich über die Systemeinstellungen ("Sprachausgabe" bzw. "Google Text-in-Sprache") oft zusätzliche, deutlich natürlicher klingende Stimmen nachinstallieren, die dann hier zur Auswahl stehen.
 
 ## Testmodus
 

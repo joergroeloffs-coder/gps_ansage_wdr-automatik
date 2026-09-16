@@ -31,6 +31,9 @@
 <h1>Fähr-Ansageautomatik (GPS)</h1>
 <div class="status" id="globalStatus">GPS wird gestartet…</div>
 
+<label class="berthLabel">Stimme für Ansagen</label>
+<select class="berthSelect" id="voiceSelect"></select>
+
 <button id="startBtn">GPS-Tracking starten</button>
 <button id="stopBtn" class="secondary">Stoppen</button>
 <button id="testTtsBtn" class="secondary">TTS testen</button>
@@ -68,6 +71,7 @@ const state = {
   departure: null, // siehe resetDepartureTracking()
   watchId: null,
   lastFix: null,  // {lat, lon, t}
+  selectedVoice: null,
 };
 
 function log(el, msg) {
@@ -115,8 +119,53 @@ function speak(text) {
   }
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = state.config.language || 'de-DE';
+  if (state.selectedVoice) utter.voice = state.selectedVoice;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utter);
+}
+
+// Stimmenauswahl: listet alle auf dem Gerät installierten Stimmen (bevorzugt
+// deutsche zuerst), damit man die verständlichste/angenehmste auswählen kann.
+// Manche Browser liefern die Liste erst asynchron über "voiceschanged".
+function populateVoiceList() {
+  const select = document.getElementById('voiceSelect');
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+
+  const previousValue = select.value;
+  select.innerHTML = '';
+  const sorted = [...voices].sort((a, b) => {
+    const aDe = a.lang.toLowerCase().startsWith('de') ? 0 : 1;
+    const bDe = b.lang.toLowerCase().startsWith('de') ? 0 : 1;
+    return aDe - bDe || a.name.localeCompare(b.name);
+  });
+  sorted.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI;
+    opt.textContent = `${v.name} (${v.lang})`;
+    select.appendChild(opt);
+  });
+
+  const stillExists = sorted.some(v => v.voiceURI === previousValue);
+  if (stillExists) {
+    select.value = previousValue;
+  } else {
+    const firstGerman = sorted.find(v => v.lang.toLowerCase().startsWith('de'));
+    select.value = (firstGerman || sorted[0]).voiceURI;
+  }
+  state.selectedVoice = sorted.find(v => v.voiceURI === select.value) || null;
+}
+
+function bindVoiceSelect() {
+  const select = document.getElementById('voiceSelect');
+  select.addEventListener('change', () => {
+    const voices = window.speechSynthesis.getVoices();
+    state.selectedVoice = voices.find(v => v.voiceURI === select.value) || null;
+  });
+  populateVoiceList();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = populateVoiceList;
+  }
 }
 
 async function loadConfig() {
@@ -392,6 +441,7 @@ document.getElementById('autodeckBtn').addEventListener('click', () => {
   }
 });
 
+bindVoiceSelect();
 loadConfig().then(bindTestInputs);
 </script>
 </body>
