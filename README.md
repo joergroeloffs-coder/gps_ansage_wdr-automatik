@@ -73,12 +73,11 @@ Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Lea
 
 ## Referenzposition direkt vor Ort setzen
 
-Alternative zur Karte: Direkt in der Haupt-App bei der jeweiligen Hafen-Karte gibt es zwei unabhängige Knopfpaare, je für einen der zwei Referenzpunkte (siehe "Konfiguration" oben):
+Alternative zur Karte: Direkt in der Haupt-App bei der jeweiligen Hafen-Karte gibt es ein Knopfpaar für den **Einlaufen-Punkt** (Fadenkreuz-Symbol ⌖): Position, an der die Einlaufen-Ansage ausgelöst wird. Sinnvoll z.B. kurz nach Sichtkontakt zum Hafen, deutlich vor dem eigentlichen Anleger.
 
-- **Einlaufen-Punkt** (Fadenkreuz-Symbol ⌖): Position, an der die Einlaufen-Ansage ausgelöst wird. Sinnvoll z.B. kurz nach Sichtkontakt zum Hafen, deutlich vor dem eigentlichen Anleger.
-- **Hafen-/Anlegepunkt** (Anker-Symbol ⚓): die tatsächliche Anlegestelle. Hier am besten setzen, während das Schiff wirklich am Kai liegt.
+Der **Hafen-/Anlegepunkt** (`dockLat`/`dockLon`) ist bewusst nicht per Button setzbar – er ändert sich nicht (nur drei feste Häfen) und wird einmalig direkt in `stations.json` eingetragen.
 
-Beide übernehmen die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung), gespeichert im Browser (localStorage), übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. Der jeweilige rote Knopf (✕) setzt die ursprünglichen Koordinaten aus `stations.json` wieder her.
+Der Einlaufen-Button übernimmt die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung), gespeichert im Browser (localStorage), übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gilt wieder der Wert aus `stations.json`. Der rote Knopf (✕) setzt die ursprüngliche Koordinate aus `stations.json` wieder her.
 
 ## Ansagetexte aus Bausteinen zusammensetzen (`baukasten.html`)
 
