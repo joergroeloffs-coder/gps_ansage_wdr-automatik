@@ -305,6 +305,14 @@ async function loadConfig() {
   bindShipSelect();
 }
 
+// Färbt den Seitenhintergrund passend zum gewählten Schiff ein (rein
+// optisch, damit auf einen Blick erkennbar ist, für welches Schiff die App
+// gerade eingestellt ist).
+function applyShipBackground() {
+  const ship = currentShip();
+  document.documentElement.style.setProperty('--bg', (ship && ship.bgColor) || '#f3f6fa');
+}
+
 function bindShipSelect() {
   const select = document.getElementById('shipSelect');
   const fleet = state.config.fleet || [];
@@ -314,11 +322,55 @@ function bindShipSelect() {
   try { saved = localStorage.getItem(SHIP_STORAGE_KEY); } catch (e) { /* localStorage evtl. blockiert */ }
   state.selectedShipKey = fleet.some(s => s.key === saved) ? saved : (state.config.defaultShipKey || (fleet[0] || {}).key);
   select.value = state.selectedShipKey;
+  applyShipBackground();
 
   select.addEventListener('change', () => {
     state.selectedShipKey = select.value;
     try { localStorage.setItem(SHIP_STORAGE_KEY, select.value); } catch (e) { /* ignore */ }
+    applyShipBackground();
     updateAutoModeStatus();
+    reorderStations();
+  });
+}
+
+// Liefert die Minuten bis zur nächsten heutigen Fahrplan-Abfahrt des
+// gewählten Schiffs ab dieser Station (Infinity, falls keine gefunden wird
+// oder kein Fahrplan geladen ist) - Grundlage für die Sortierung der
+// Einlaufen-Karten nach "als nächstes relevanter Hafen".
+function minutesUntilNextDeparture(stationCfg) {
+  if (!state.fahrplan || !state.fahrplan.schiffe || !stationCfg.fahrplanHafen) return Infinity;
+  const ship = currentShip();
+  if (!ship) return Infinity;
+  const eintraege = state.fahrplan.schiffe[ship.key] || [];
+  const now = new Date();
+  const isoHeute = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const nowMinuten = now.getHours() * 60 + now.getMinutes();
+
+  const minuten = eintraege
+    .filter(e => e.datum === isoHeute && e.route.startsWith(stationCfg.fahrplanHafen + '-'))
+    .map(e => { const [h, m] = e.zeit.split(':').map(Number); return h * 60 + m; })
+    .filter(m => m >= nowMinuten - 5)
+    .sort((a, b) => a - b);
+
+  return minuten.length ? (minuten[0] - nowMinuten) : Infinity;
+}
+
+// Bringt die Hafen-Karten unter "Einlaufen" in die Reihenfolge, in der ihre
+// Häfen als nächstes laut Fahrplan angelaufen/verlassen werden - der oberste
+// Hafen ist also der aktuell relevanteste. Bewegt bestehende DOM-Elemente
+// (statt sie neu zu erzeugen), damit Log-Verläufe und Auswahl erhalten
+// bleiben.
+function reorderStations() {
+  const container = document.getElementById('stations');
+  if (!container || !state.config) return;
+  const sortiert = [...state.config.stations].sort(
+    (a, b) => minutesUntilNextDeparture(a) - minutesUntilNextDeparture(b)
+  );
+  sortiert.forEach(s => {
+    const el = document.getElementById('station-' + s.id);
+    if (el) container.appendChild(el);
   });
 }
 
@@ -682,6 +734,7 @@ async function loadFahrplan() {
     applyAutoRoute(state.departure.matchedStation, document.getElementById('fahrplanLog'));
   }
   checkScheduledDepartures();
+  reorderStations();
 }
 
 // Heutige Abfahrten des gewählten Schiffs, chronologisch.
@@ -870,7 +923,7 @@ loadConfig().then(() => {
   loadFahrplan();
   // Fahrplan alle 10 Minuten neu laden, Automatik-Fenster jede Minute prüfen.
   setInterval(loadFahrplan, 10 * 60 * 1000);
-  setInterval(() => { updateAutoModeStatus(); applyAutoMode(); checkScheduledDepartures(); }, 60 * 1000);
+  setInterval(() => { updateAutoModeStatus(); applyAutoMode(); checkScheduledDepartures(); reorderStations(); }, 60 * 1000);
 });
 </script>
 </body>

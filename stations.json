@@ -3,10 +3,10 @@
   "audioVersion": 3,
   "hysteresisFactor": 1.5,
   "fleet": [
-    { "key": "NORDFRIESLAND", "audioKey": "nordfriesland", "name": "Nordfriesland" },
-    { "key": "NORDERAUE", "audioKey": "norderaue", "name": "Norderaue" },
-    { "key": "SCHLESWIG - HOLSTEIN", "audioKey": "schleswig-holstein", "name": "Schleswig-Holstein" },
-    { "key": "UTHLANDE", "audioKey": "uthlande", "name": "Uthlande" }
+    { "key": "NORDFRIESLAND", "audioKey": "nordfriesland", "name": "Nordfriesland", "bgColor": "#fbe36b" },
+    { "key": "NORDERAUE", "audioKey": "norderaue", "name": "Norderaue", "bgColor": "#e6e6e6" },
+    { "key": "SCHLESWIG - HOLSTEIN", "audioKey": "schleswig-holstein", "name": "Schleswig-Holstein", "bgColor": "#a9cdf5" },
+    { "key": "UTHLANDE", "audioKey": "uthlande", "name": "Uthlande", "bgColor": "#f2a6a6" }
   ],
   "defaultShipKey": "SCHLESWIG - HOLSTEIN",
   "fahrplanScheduleUrl": "https://raw.githubusercontent.com/joergroeloffs-coder/dienstplan/main/fahrplan_schedule.json",
