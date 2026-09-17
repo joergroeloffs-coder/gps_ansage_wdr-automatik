@@ -47,7 +47,7 @@
   .diagToggle { font-size: 0.9rem; color: var(--text-muted); margin: 0.75rem 0; display: flex; align-items: center; gap: 0.4rem; }
   .diagToggle input { width: 1.2rem; height: 1.2rem; }
   .iconBtn { width: 2.3rem; height: 2.3rem; padding: 0; border-radius: 50%; font-size: 1.15rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; margin: 0 0.5rem 0.5rem 0; vertical-align: middle; }
-  .iconBtn.setRefBtn { background: var(--secondary-bg); color: var(--text); }
+  .iconBtn.setArrivalRefBtn, .iconBtn.setDockRefBtn { background: var(--secondary-bg); color: var(--text); }
   .iconBtn.resetRefBtn { background: #fbdada; color: #b3261e; }
 </style>
 </head>
@@ -294,30 +294,40 @@ function bindVoiceSelect() {
   }
 }
 
-const REFERENCE_POSITIONS_KEY = 'ansage-referenzpositionen';
+// Zwei unabhängige Referenzpunkte pro Station:
+// - "arrival": löst die Einlaufen-Ansage aus (lat/lon). Liegt oft ein Stück
+//   vor dem eigentlichen Anleger, damit die Ansage rechtzeitig kommt.
+// - "dock": der tatsächliche Hafen-/Anlegepunkt (dockLat/dockLon), an dem
+//   das Schiff wirklich anlegt - Grundlage für die Anlegen-/Ablegen-Erkennung.
+const REFERENCE_KINDS = {
+  arrival: { storageKey: 'ansage-referenzpositionen-einlaufen', latProp: 'lat', lonProp: 'lon' },
+  dock: { storageKey: 'ansage-referenzpositionen-hafen', latProp: 'dockLat', lonProp: 'dockLon' },
+};
 
-function loadReferenceOverrides() {
-  try { return JSON.parse(localStorage.getItem(REFERENCE_POSITIONS_KEY) || '{}'); }
+function loadReferenceOverrides(kind) {
+  try { return JSON.parse(localStorage.getItem(REFERENCE_KINDS[kind].storageKey) || '{}'); }
   catch (e) { return {}; }
 }
-function saveReferenceOverrides(overrides) {
-  try { localStorage.setItem(REFERENCE_POSITIONS_KEY, JSON.stringify(overrides)); }
+function saveReferenceOverrides(kind, overrides) {
+  try { localStorage.setItem(REFERENCE_KINDS[kind].storageKey, JSON.stringify(overrides)); }
   catch (e) { /* localStorage evtl. blockiert - Übersteuerung gilt dann nur für diese Sitzung */ }
 }
 
 // Übernimmt die aktuelle GPS-Position (laufendes Tracking oder einmalige
-// Abfrage) als neuen Referenzpunkt für die Einlaufen-Erkennung dieser
-// Station. Wird lokal gespeichert (localStorage) und überlebt Neuladen,
-// überschreibt aber nicht stations.json selbst - "Zurücksetzen" stellt die
-// Werte aus stations.json wieder her.
-function setReferencePosition(stationCfg, logEl) {
+// Abfrage) als neuen Referenzpunkt (Einlaufen oder Hafen/Anlegen, je nach
+// "kind") dieser Station. Wird lokal gespeichert (localStorage) und
+// überlebt Neuladen, überschreibt aber nicht stations.json selbst -
+// "Zurücksetzen" stellt die Werte aus stations.json wieder her.
+function setReferencePosition(kind, stationCfg, logEl) {
+  const { latProp, lonProp } = REFERENCE_KINDS[kind];
+  const label = kind === 'dock' ? 'Hafenposition' : 'Einlaufen-Referenzpunkt';
   const apply = (lat, lon) => {
-    stationCfg.lat = lat;
-    stationCfg.lon = lon;
-    const overrides = loadReferenceOverrides();
+    stationCfg[latProp] = lat;
+    stationCfg[lonProp] = lon;
+    const overrides = loadReferenceOverrides(kind);
     overrides[stationCfg.id] = { lat, lon };
-    saveReferenceOverrides(overrides);
-    log(logEl, `Referenzposition gesetzt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+    saveReferenceOverrides(kind, overrides);
+    log(logEl, `${label} gesetzt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
   };
   if (state.smoothedFix && (Date.now() - state.smoothedFix.t) < 30000) {
     apply(state.smoothedFix.lat, state.smoothedFix.lon);
@@ -335,28 +345,39 @@ function setReferencePosition(stationCfg, logEl) {
   );
 }
 
-function resetReferencePosition(stationCfg, logEl) {
-  if (stationCfg._defaultLat === undefined) return;
-  stationCfg.lat = stationCfg._defaultLat;
-  stationCfg.lon = stationCfg._defaultLon;
-  const overrides = loadReferenceOverrides();
+function resetReferencePosition(kind, stationCfg, logEl) {
+  const { latProp, lonProp } = REFERENCE_KINDS[kind];
+  const label = kind === 'dock' ? 'Hafenposition' : 'Einlaufen-Referenzpunkt';
+  const defaultLatProp = '_default' + latProp[0].toUpperCase() + latProp.slice(1);
+  const defaultLonProp = '_default' + lonProp[0].toUpperCase() + lonProp.slice(1);
+  if (stationCfg[defaultLatProp] === undefined) return;
+  stationCfg[latProp] = stationCfg[defaultLatProp];
+  stationCfg[lonProp] = stationCfg[defaultLonProp];
+  const overrides = loadReferenceOverrides(kind);
   delete overrides[stationCfg.id];
-  saveReferenceOverrides(overrides);
-  log(logEl, `Referenzposition zurückgesetzt auf Standard: ${stationCfg.lat.toFixed(6)}, ${stationCfg.lon.toFixed(6)}`);
+  saveReferenceOverrides(kind, overrides);
+  log(logEl, `${label} zurückgesetzt auf Standard: ${stationCfg[latProp]?.toFixed(6)}, ${stationCfg[lonProp]?.toFixed(6)}`);
 }
 
 async function loadConfig() {
   const res = await fetch('stations.json', { cache: 'no-store' });
   state.config = await res.json();
-  const overrides = loadReferenceOverrides();
+  const arrivalOverrides = loadReferenceOverrides('arrival');
+  const dockOverrides = loadReferenceOverrides('dock');
   state.config.stations.forEach(s => {
     // Originalwerte aus stations.json merken, bevor eine lokale
     // Referenzposition (falls vorhanden) angewendet wird - für "Zurücksetzen".
     s._defaultLat = s.lat;
     s._defaultLon = s.lon;
-    if (overrides[s.id]) {
-      s.lat = overrides[s.id].lat;
-      s.lon = overrides[s.id].lon;
+    s._defaultDockLat = s.dockLat;
+    s._defaultDockLon = s.dockLon;
+    if (arrivalOverrides[s.id]) {
+      s.lat = arrivalOverrides[s.id].lat;
+      s.lon = arrivalOverrides[s.id].lon;
+    }
+    if (dockOverrides[s.id]) {
+      s.dockLat = dockOverrides[s.id].lat;
+      s.dockLon = dockOverrides[s.id].lon;
     }
     state.stations[s.id] = {
       armedArrival: true,
@@ -451,8 +472,14 @@ function renderStations() {
       <div>Distanz: <span class="dist">–</span> m</div>
       <span class="badge arrivalBadge far">Einlaufen: bereit</span>
       <div>
-        <button class="iconBtn setRefBtn" title="Referenzposition hier setzen" aria-label="Referenzposition hier setzen">⌖</button>
-        <button class="iconBtn resetRefBtn" title="Referenzposition zurücksetzen" aria-label="Referenzposition zurücksetzen">✕</button>
+        <span class="berthLabel" style="display:inline;margin:0;">Einlaufen-Punkt:</span>
+        <button class="iconBtn setArrivalRefBtn" title="Einlaufen-Referenzpunkt hier setzen" aria-label="Einlaufen-Referenzpunkt hier setzen">⌖</button>
+        <button class="iconBtn resetRefBtn" data-kind="arrival" title="Einlaufen-Referenzpunkt zurücksetzen" aria-label="Einlaufen-Referenzpunkt zurücksetzen">✕</button>
+      </div>
+      <div>
+        <span class="berthLabel" style="display:inline;margin:0;">Hafen-/Anlegepunkt:</span>
+        <button class="iconBtn setDockRefBtn" title="Hafenposition hier setzen" aria-label="Hafenposition hier setzen">⚓</button>
+        <button class="iconBtn resetRefBtn" data-kind="dock" title="Hafenposition zurücksetzen" aria-label="Hafenposition zurücksetzen">✕</button>
       </div>
       <label class="berthLabel">Anleger für die nächste Ankunft</label>
       <select class="berthSelect" data-station="${s.id}">
@@ -493,8 +520,11 @@ function renderStations() {
         playAnnouncement(departureAudioUrl(s), departureText(s), div.querySelector('.log'), 'Vorhören Ablegen');
       });
     }
-    div.querySelector('.setRefBtn').addEventListener('click', () => setReferencePosition(s, div.querySelector('.log')));
-    div.querySelector('.resetRefBtn').addEventListener('click', () => resetReferencePosition(s, div.querySelector('.log')));
+    div.querySelector('.setArrivalRefBtn').addEventListener('click', () => setReferencePosition('arrival', s, div.querySelector('.log')));
+    div.querySelector('.setDockRefBtn').addEventListener('click', () => setReferencePosition('dock', s, div.querySelector('.log')));
+    div.querySelectorAll('.resetRefBtn').forEach(btn => {
+      btn.addEventListener('click', () => resetReferencePosition(btn.dataset.kind, s, div.querySelector('.log')));
+    });
     container.appendChild(div);
   });
 }
@@ -558,10 +588,23 @@ function formatMinSec(ms) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// Liefert die für die Anlegen-Erkennung relevante Koordinate einer Station:
+// den eigenen Hafen-/Anlegepunkt (dockLat/dockLon), falls vorhanden - sonst
+// ersatzweise den Einlaufen-Referenzpunkt (lat/lon). Beide Punkte können
+// weit auseinander liegen (der Einlaufen-Punkt liegt oft schon deutlich vor
+// dem eigentlichen Anleger, damit die Ansage rechtzeitig kommt).
+function dockPositionOf(stationCfg) {
+  return {
+    lat: stationCfg.dockLat ?? stationCfg.lat,
+    lon: stationCfg.dockLon ?? stationCfg.lon,
+  };
+}
+
 function findNearestStation(lat, lon, maxDist) {
   let best = null, bestDist = Infinity;
   (state.config.stations || []).forEach(s => {
-    const d = haversineMeters(lat, lon, s.lat, s.lon);
+    const dock = dockPositionOf(s);
+    const d = haversineMeters(lat, lon, dock.lat, dock.lon);
     if (d < bestDist) { bestDist = d; best = s; }
   });
   return (best && bestDist <= maxDist) ? best : null;

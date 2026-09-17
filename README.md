@@ -18,8 +18,12 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 - `positionSmoothingSeconds` (Default 15): GPS ist auf einem Stahlschiff ungenau und springt zwischen einzelnen Messungen. Statt jede Rohposition einzeln zu verwenden, bildet die App den gleitenden Mittelwert aller Positionen der letzten `positionSmoothingSeconds` Sekunden und verwendet nur diese geglättete Position für Einlaufen-/Ablegen-Erkennung, Fahrtziel-Automatik und die Referenzposition-Buttons. Die Geschwindigkeitsanzeige und der Rohwert im Status bleiben ungeglättet.
 - `textTemplates.arrival`: Objekt mit einer Vorlage je Anleger-Typ – `ohneSeitenausstieg` und `mitSeitenausstieg`. Platzhalter `{hafen}` wird automatisch durch den Stationsnamen ersetzt. Fehlt eine Vorlage (z.B. `mitSeitenausstieg: null`), wird für Stationen ohne eigenen Text keine Ansage abgespielt (siehe Log-Hinweis).
 - `textTemplates.departure`: Fallback-Ablege-Vorlage für Stationen ohne eigene `departureRoutes` (siehe unten).
-- `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
-- `arrival.radiusMeters`: Ab dieser Entfernung zum Hafen wird die Einlaufen-Ansage ausgelöst.
+- `stations`: Liste der Häfen/Stationen mit **zwei unabhängigen Referenzpunkten**:
+  - `lat`/`lon` – der **Einlaufen-Punkt**, an dem die Einlaufen-Ansage ausgelöst wird (`arrival.radiusMeters`, Default 100m). Liegt oft deutlich vor dem eigentlichen Anleger, damit die Ansage rechtzeitig vor dem Anlegemanöver kommt (bei Dagebüll z.B. ca. 950m vor dem Hafen selbst).
+  - `dockLat`/`dockLon` – der **tatsächliche Hafen-/Anlegepunkt**, an dem das Schiff wirklich anlegt. Grundlage für die Anlegen-/Ablegen-Erkennung (`stationMatchRadiusMeters`, siehe unten). Fehlt `dockLat`/`dockLon` (noch nicht eingetragen), wird ersatzweise `lat`/`lon` verwendet.
+  
+  `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
+- `arrival.radiusMeters`: Ab dieser Entfernung zum Einlaufen-Punkt wird die Einlaufen-Ansage ausgelöst.
 - **Anleger-Typ-Auswahl (mit/ohne Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Mit Seitenausstieg" (Standard) / "Ohne Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
 - **`departureRoutes`** (pro Station): Liste möglicher Fahrtziele ab diesem Hafen, je mit `id`, `label` (Anzeige im Dropdown) und `text` (Ansagetext, Muster "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach/über … {ziel}."). Da mehrere Routen möglich sind (z.B. ab Dagebüll nach Wyk, nach Wittdün, oder über Wyk nach Wittdün), wählt die Crew im UI vor dem Ablegen per Dropdown "Fahrtziel für die nächste Abfahrt" die passende Route – die Ablege-Ansage (Text und Audiodatei) richtet sich danach.
 - `hysteresisFactor`: Verhindert Mehrfachauslösung durch GPS-Schwankungen am Radius-Rand (gilt für Einlaufen).
@@ -29,7 +33,7 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
   - `driftToleranceSeconds` (Default 60): Kurze GPS-Ausreißer über `stableRadiusMeters` hinaus werden bis zu dieser Dauer ignoriert (Messung läuft weiter), statt die 7-Minuten-Messung sofort neu zu starten. Erst wenn die Position durchgehend länger als diese Zeit außerhalb bleibt, gilt das als echte Bewegung.
   - `departureRadiusMeters` (Default 50): Entfernung vom Anker, ab der ein Ablegen erkannt wird.
   - `departureWindowMinutes` (Default 2): Diese Entfernung muss innerhalb dieses Zeitfensters erreicht werden – sonst gilt es als langsames Wegdriften statt echtem Ablegen, und es wird nichts ausgelöst.
-  - `stationMatchRadiusMeters` (Default 50): Umkreis um eine konfigurierte Station, innerhalb dessen ein erkannter Stillstand überhaupt als "Anlegen" zählt (und dieser Station zugeordnet wird). Ein Stillstand außerhalb dieses Umkreises (z.B. Warten auf freie Fahrt mitten auf der Strecke) wird explizit **nicht** als Anlegen gewertet – ohne diese Prüfung könnte sonst eine Ablege-Ansage kommen, obwohl das Schiff nie in einem Hafen war.
+  - `stationMatchRadiusMeters` (Default 50): Umkreis um den **Hafen-/Anlegepunkt** (`dockLat`/`dockLon`, nicht den Einlaufen-Punkt!) einer Station, innerhalb dessen ein erkannter Stillstand überhaupt als "Anlegen" zählt. Ein Stillstand außerhalb dieses Umkreises (z.B. Warten auf freie Fahrt mitten auf der Strecke) wird explizit **nicht** als Anlegen gewertet – ohne diese Prüfung könnte sonst eine Ablege-Ansage kommen, obwohl das Schiff nie in einem Hafen war.
   - `genericText`: Fallback-Ansagetext, falls der Anker keiner Station zugeordnet werden kann.
 - `secondaryAnnouncements`: manuell auslösbare Zusatzansagen, unabhängig von GPS (z.B. `autodeckFreigabe` – Crew drückt im UI einen eigenen Button, sobald das Autodeck zum Verlassen freigegeben werden soll).
 - `fahrplanScheduleUrl`: URL zur `fahrplan_schedule.json` im `dienstplan`-Repo (siehe nächster Abschnitt).
@@ -67,9 +71,14 @@ Statt Koordinaten manuell zu suchen: `karte.html` im Browser öffnen (funktionie
 
 Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Leaflet-Bibliothek (CDN).
 
-## Referenzposition direkt vor Ort setzen ("Referenzposition hier setzen")
+## Referenzposition direkt vor Ort setzen
 
-Alternative zur Karte: Auf dem Schiff/am Anleger direkt in der Haupt-App bei der jeweiligen Hafen-Karte den kleinen runden Knopf mit dem Fadenkreuz-Symbol (⌖) drücken – übernimmt die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung) als neuen Referenzpunkt für die Einlaufen-Erkennung dieses Hafens. Wird im Browser gespeichert (localStorage) und übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. Der kleine rote Knopf (✕) daneben setzt die ursprünglichen Koordinaten aus `stations.json` wieder her.
+Alternative zur Karte: Direkt in der Haupt-App bei der jeweiligen Hafen-Karte gibt es zwei unabhängige Knopfpaare, je für einen der zwei Referenzpunkte (siehe "Konfiguration" oben):
+
+- **Einlaufen-Punkt** (Fadenkreuz-Symbol ⌖): Position, an der die Einlaufen-Ansage ausgelöst wird. Sinnvoll z.B. kurz nach Sichtkontakt zum Hafen, deutlich vor dem eigentlichen Anleger.
+- **Hafen-/Anlegepunkt** (Anker-Symbol ⚓): die tatsächliche Anlegestelle. Hier am besten setzen, während das Schiff wirklich am Kai liegt.
+
+Beide übernehmen die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung), gespeichert im Browser (localStorage), übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. Der jeweilige rote Knopf (✕) setzt die ursprünglichen Koordinaten aus `stations.json` wieder her.
 
 ## Ansagetexte aus Bausteinen zusammensetzen (`baukasten.html`)
 
