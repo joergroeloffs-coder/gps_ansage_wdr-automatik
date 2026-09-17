@@ -9,7 +9,7 @@
     "departure": "Wir legen jetzt in {hafen} ab. Bitte nehmen Sie Platz."
   },
   "secondaryAnnouncements": {
-    "autodeckFreigabe": "Achtung, es geht jetzt los. Bitte betreten Sie das Autodeck noch nicht. Wir werden erst einige Fahrzeuge von Deck nehmen, sodass Sie im Anschluss sicher von Bord kommen können. Ende der Durchsage."
+    "autodeckFreigabe": "Bitte betreten Sie das Autodeck noch nicht. Wir werden erst einige Fahrzeuge von Deck nehmen, sodass Sie im Anschluss sicher von Bord kommen können. Ende der Durchsage."
   },
   "departureDetection": {
     "stableRadiusMeters": 20,
