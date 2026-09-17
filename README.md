@@ -13,7 +13,8 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 
 ## Konfiguration (`stations.json`)
 
-- `ship.name`: Schiffsname, Platzhalter `{schiff}` in den Ablege-Ansagen wird damit ersetzt. **Aktuell nur ein Testname ("Schleswig-Holstein") – bitte durch den echten Schiffsnamen ersetzen, sobald der feststeht, und danach die Ablege-Audiodateien neu erzeugen.**
+- `fleet`: die vier Schiffe der Flotte, je mit `key` (interner Schlüssel, muss zu den Schiffskürzeln im Fahrplan passen: `NORDFRIESLAND`, `NORDERAUE`, `SCHLESWIG - HOLSTEIN`, `UTHLANDE`), `audioKey` (Dateinamens-Bestandteil für die Ablege-Audiodateien) und `name` (gesprochener Anzeigename, ersetzt `{schiff}`). Im UI oben wählt die Crew das aktuelle Schiff aus (persistiert im Browser) – das bestimmt sowohl den gesprochenen Schiffsnamen als auch, welcher Fahrplan-Eintrag für die Automatik (siehe unten) herangezogen wird.
+- `defaultShipKey`: Schiff, das beim ersten Öffnen (ohne gespeicherte Auswahl) vorausgewählt ist.
 - `textTemplates.arrival`: Objekt mit einer Vorlage je Anleger-Typ – `ohneSeitenausstieg` und `mitSeitenausstieg`. Platzhalter `{hafen}` wird automatisch durch den Stationsnamen ersetzt. Fehlt eine Vorlage (z.B. `mitSeitenausstieg: null`), wird für Stationen ohne eigenen Text keine Ansage abgespielt (siehe Log-Hinweis).
 - `textTemplates.departure`: Fallback-Ablege-Vorlage für Stationen ohne eigene `departureRoutes` (siehe unten).
 - `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
@@ -30,8 +31,22 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
   - `stationMatchRadiusMeters` (Default 300): Umkreis, in dem der erkannte Ablege-Anker einer konfigurierten Station zugeordnet wird (für den passenden Ansagetext).
   - `genericText`: Fallback-Ansagetext, falls der Anker keiner Station zugeordnet werden kann.
 - `secondaryAnnouncements`: manuell auslösbare Zusatzansagen, unabhängig von GPS (z.B. `autodeckFreigabe` – Crew drückt im UI einen eigenen Button, sobald das Autodeck zum Verlassen freigegeben werden soll).
+- `fahrplanScheduleUrl`: URL zur `fahrplan_schedule.json` im `dienstplan`-Repo (siehe nächster Abschnitt).
+- `autoTracking.leadMinutes` / `autoTracking.lagMinutes`: wie viele Minuten vor der ersten bzw. nach der letzten heutigen Abfahrt des gewählten Schiffs das automatische GPS-Tracking bereits läuft bzw. noch weiterläuft.
 
 **Wichtig:** Die Koordinaten in `stations.json` sind Platzhalter und müssen durch die echten Hafenpositionen der Wikingerdampfschiffsreederei ersetzt werden. Ebenso sind die Ansagetexte nur Beispiele.
+
+## Fahrplan-Automatik (Schiffsauswahl + automatisches GPS-Tracking)
+
+Im UI oben wählt die Crew das aktuelle Schiff (eines der vier: Nordfriesland, Norderaue, Schleswig-Holstein, Uthlande). Das bestimmt:
+
+1. Den gesprochenen Schiffsnamen in den Ablege-Ansagen (Platzhalter `{schiff}`).
+2. Welche vorproduzierte Ablege-Audiodatei verwendet wird (`departure_<hafen>_<route>_<audioKey>.mp3`). **Aktuell liegen nur Audiodateien für "Schleswig-Holstein" vor** – für die anderen drei Schiffe greift automatisch der Live-TTS-Fallback (mit korrektem Schiffsnamen, aber Gerätestimme), bis eigene Audiodateien erzeugt werden.
+3. Welcher Fahrplan-Eintrag für die Automatik herangezogen wird.
+
+**Automatikmodus** (Checkbox im Abschnitt "Fahrplan-Automatik"): Wenn aktiviert, lädt die App periodisch `fahrplan_schedule.json` aus dem `dienstplan`-Repo (Cross-Origin-Fetch von `raw.githubusercontent.com` – dort wird sie stündlich per GitHub Action aus dem echten Fahrplan-PDF von faehre2.de neu erzeugt, Skript `fahrplan_export_gps.py` im `dienstplan`-Repo). Für das gewählte Schiff werden die heutigen Abfahrten ermittelt; das "Einsatzfenster" reicht von `leadMinutes` vor der ersten bis `lagMinutes` nach der letzten Abfahrt. Innerhalb dieses Fensters wird GPS-Tracking automatisch gestartet, außerhalb automatisch gestoppt (spart Akku, wenn das Schiff nicht fährt). Der Status wird live angezeigt ("heute im Einsatz von X bis Y").
+
+**Wichtig:** Die Automatik ersetzt nicht die manuellen Start/Stopp-Buttons – bei deaktiviertem Automatikmodus verhält sich die App wie zuvor. Der Fahrplan-Export läuft nur auf dem `main`-Branch von `dienstplan` (GitHub-Actions-Zeitpläne feuern nicht auf Feature-Branches) – solange die entsprechende Änderung dort nicht gemerged ist, bleibt `fahrplan_schedule.json` leer/fehlt, und die Automatik zeigt "Fahrplan konnte nicht geladen werden" bzw. bleibt inaktiv.
 
 ## Referenzpunkte per Karte setzen (`karte.html`)
 

@@ -1,9 +1,18 @@
 {
   "language": "de-DE",
-  "audioVersion": 2,
+  "audioVersion": 3,
   "hysteresisFactor": 1.5,
-  "ship": {
-    "name": "Schleswig-Holstein"
+  "fleet": [
+    { "key": "NORDFRIESLAND", "audioKey": "nordfriesland", "name": "Nordfriesland" },
+    { "key": "NORDERAUE", "audioKey": "norderaue", "name": "Norderaue" },
+    { "key": "SCHLESWIG - HOLSTEIN", "audioKey": "schleswig-holstein", "name": "Schleswig-Holstein" },
+    { "key": "UTHLANDE", "audioKey": "uthlande", "name": "Uthlande" }
+  ],
+  "defaultShipKey": "SCHLESWIG - HOLSTEIN",
+  "fahrplanScheduleUrl": "https://raw.githubusercontent.com/joergroeloffs-coder/dienstplan/main/fahrplan_schedule.json",
+  "autoTracking": {
+    "leadMinutes": 15,
+    "lagMinutes": 40
   },
   "textTemplates": {
     "arrival": {

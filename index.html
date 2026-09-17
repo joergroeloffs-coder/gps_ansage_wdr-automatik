@@ -37,12 +37,23 @@
 <h1>Fähr-Ansageautomatik (GPS)</h1>
 <div class="status" id="globalStatus">GPS wird gestartet…</div>
 
-<label class="berthLabel">Stimme für Ansagen</label>
+<label class="berthLabel">Schiff (für Ansagen und Fahrplan-Automatik)</label>
+<select class="berthSelect" id="shipSelect"></select>
+
+<label class="berthLabel">Stimme für Ansagen (nur Notbehelf, falls keine Audiodatei vorliegt)</label>
 <select class="berthSelect" id="voiceSelect"></select>
 
 <button id="startBtn">GPS-Tracking starten</button>
 <button id="stopBtn" class="secondary">Stoppen</button>
 <button id="testTtsBtn" class="secondary">TTS testen</button>
+
+<h2>Fahrplan-Automatik</h2>
+<div class="station">
+  <label class="berthLabel"><input type="checkbox" id="autoModeCheckbox"> Automatikmodus: GPS-Tracking automatisch zu den Abfahrtszeiten des gewählten Schiffs ein-/ausschalten</label>
+  <div id="autoModeStatus" class="hint" style="font-size:0.85rem;color:#aaa;">Fahrplan wird geladen…</div>
+  <button class="secondary" id="reloadFahrplanBtn">Fahrplan aktualisieren</button>
+  <div class="log" id="fahrplanLog"></div>
+</div>
 
 <h2>Einlaufen</h2>
 <div id="stations"></div>
@@ -79,7 +90,17 @@ const state = {
   lastFix: null,  // {lat, lon, t}
   selectedVoice: null,
   wakeLock: null,
+  selectedShipKey: null,
+  fahrplan: null,     // geladenes fahrplan_schedule.json
+  autoModeOn: false,
 };
+
+const SHIP_STORAGE_KEY = 'ansage-gewaehltes-schiff';
+
+function currentShip() {
+  const fleet = state.config.fleet || [];
+  return fleet.find(s => s.key === state.selectedShipKey) || fleet[0] || null;
+}
 
 function log(el, msg) {
   const ts = new Date().toLocaleTimeString();
@@ -101,9 +122,10 @@ function renderTemplate(template, vars) {
 }
 
 function templateVars(stationCfg) {
+  const ship = currentShip();
   return {
     hafen: stationCfg ? stationCfg.name : '',
-    schiff: (state.config.ship || {}).name || '',
+    schiff: ship ? ship.name : '',
   };
 }
 
@@ -151,11 +173,17 @@ function audioVersionSuffix() {
 function arrivalAudioUrl(stationCfg, berthType) {
   return `audio/arrival_${stationCfg.id}_${berthType}.mp3${audioVersionSuffix()}`;
 }
+// Ablege-Ansagen enthalten den Schiffsnamen ({schiff}) und sind daher pro
+// Schiff als eigene Audiodatei vorproduziert. Für Schiffe, für die noch
+// keine Datei existiert, greift automatisch der Live-TTS-Fallback (mit dem
+// korrekten Schiffsnamen, da der ja aus der Textvorlage kommt).
 function departureAudioUrl(stationCfg) {
+  const ship = currentShip();
+  const shipSuffix = ship ? `_${ship.audioKey}` : '';
   const route = selectedRoute(stationCfg);
   const base = route
-    ? `audio/departure_${stationCfg.id}_${route.id}.mp3`
-    : (stationCfg ? `audio/departure_${stationCfg.id}.mp3` : `audio/departure_generic.mp3`);
+    ? `audio/departure_${stationCfg.id}_${route.id}${shipSuffix}.mp3`
+    : (stationCfg ? `audio/departure_${stationCfg.id}${shipSuffix}.mp3` : `audio/departure_generic${shipSuffix}.mp3`);
   return base + audioVersionSuffix();
 }
 function autodeckAudioUrl() {
@@ -248,6 +276,24 @@ async function loadConfig() {
   });
   resetDepartureTracking(null);
   renderStations();
+  bindShipSelect();
+}
+
+function bindShipSelect() {
+  const select = document.getElementById('shipSelect');
+  const fleet = state.config.fleet || [];
+  select.innerHTML = fleet.map(s => `<option value="${s.key}">${s.name}</option>`).join('');
+
+  let saved = null;
+  try { saved = localStorage.getItem(SHIP_STORAGE_KEY); } catch (e) { /* localStorage evtl. blockiert */ }
+  state.selectedShipKey = fleet.some(s => s.key === saved) ? saved : (state.config.defaultShipKey || (fleet[0] || {}).key);
+  select.value = state.selectedShipKey;
+
+  select.addEventListener('change', () => {
+    state.selectedShipKey = select.value;
+    try { localStorage.setItem(SHIP_STORAGE_KEY, select.value); } catch (e) { /* ignore */ }
+    updateAutoModeStatus();
+  });
 }
 
 function renderStations() {
@@ -529,6 +575,101 @@ function stopTracking() {
   document.getElementById('globalStatus').textContent = 'Tracking gestoppt.';
 }
 
+// --- Fahrplan-Automatik ---
+// Lädt fahrplan_schedule.json aus dem dienstplan-Repo (Cross-Origin-Fetch von
+// raw.githubusercontent.com, wird dort stündlich per GitHub Action aktualisiert)
+// und ermittelt daraus, ob das gewählte Schiff heute laut Fahrplan im Einsatz
+// sein sollte. Im Automatikmodus schaltet das GPS-Tracking entsprechend
+// automatisch ein/aus.
+async function loadFahrplan() {
+  const url = state.config.fahrplanScheduleUrl;
+  const logEl = document.getElementById('fahrplanLog');
+  if (!url) { updateAutoModeStatus(); return; }
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    state.fahrplan = await res.json();
+    log(logEl, `Fahrplan geladen (Stand: ${state.fahrplan.generated_at || 'unbekannt'}).`);
+  } catch (err) {
+    log(logEl, 'Fahrplan konnte nicht geladen werden: ' + err.message);
+  }
+  updateAutoModeStatus();
+  applyAutoMode();
+}
+
+// Heutige Abfahrten des gewählten Schiffs, chronologisch.
+function todaysDeparturesForShip() {
+  if (!state.fahrplan || !state.fahrplan.schiffe) return [];
+  const ship = currentShip();
+  if (!ship) return [];
+  const heute = new Date();
+  const isoHeute = heute.getFullYear() + '-' +
+    String(heute.getMonth() + 1).padStart(2, '0') + '-' +
+    String(heute.getDate()).padStart(2, '0');
+  const eintraege = state.fahrplan.schiffe[ship.key] || [];
+  return eintraege.filter(e => e.datum === isoHeute);
+}
+
+// Liefert {active, from, to, first, last} für das heutige Einsatzfenster
+// (erste Abfahrt minus Vorlaufzeit bis letzte Abfahrt plus Nachlaufzeit).
+function todaysServiceWindow() {
+  const abfahrten = todaysDeparturesForShip();
+  if (!abfahrten.length) return null;
+  const cfg = state.config.autoTracking || {};
+  const leadMs = (cfg.leadMinutes ?? 15) * 60000;
+  const lagMs = (cfg.lagMinutes ?? 40) * 60000;
+
+  const zeitZuDate = zeit => {
+    const [h, m] = zeit.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+
+  const zeiten = abfahrten.map(a => zeitZuDate(a.zeit)).sort((a, b) => a - b);
+  const first = zeiten[0];
+  const last = zeiten[zeiten.length - 1];
+  const from = new Date(first.getTime() - leadMs);
+  const to = new Date(last.getTime() + lagMs);
+  const now = new Date();
+  return { active: now >= from && now <= to, from, to, first, last };
+}
+
+function formatTime(d) {
+  return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+function updateAutoModeStatus() {
+  const el = document.getElementById('autoModeStatus');
+  if (!state.fahrplan) { el.textContent = 'Fahrplan noch nicht geladen.'; return; }
+  const ship = currentShip();
+  const win = todaysServiceWindow();
+  if (!win) {
+    el.textContent = `${ship ? ship.name : 'Schiff'}: heute keine Abfahrten im Fahrplan gefunden.`;
+    return;
+  }
+  el.textContent = win.active
+    ? `${ship.name}: heute im Einsatz von ${formatTime(win.from)} bis ${formatTime(win.to)} – aktuell aktiv.`
+    : `${ship.name}: heute im Einsatz von ${formatTime(win.from)} bis ${formatTime(win.to)} – aktuell außerhalb des Fensters.`;
+}
+
+// Prüft (im Automatikmodus) ob GPS-Tracking laut Fahrplan gerade laufen
+// sollte, und startet/stoppt es entsprechend.
+function applyAutoMode() {
+  if (!state.autoModeOn) return;
+  const win = todaysServiceWindow();
+  const shouldRun = !!(win && win.active);
+  const logEl = document.getElementById('fahrplanLog');
+  if (shouldRun && state.watchId === null) {
+    log(logEl, 'Automatik: Einsatzfenster erreicht – GPS-Tracking wird gestartet.');
+    startTracking();
+  } else if (!shouldRun && state.watchId !== null) {
+    log(logEl, 'Automatik: Einsatzfenster beendet – GPS-Tracking wird gestoppt.');
+    stopTracking();
+  }
+  updateAutoModeStatus();
+}
+
 // Testmodus: manuelle Eingaben live auswerten (Zeit läuft dabei real weiter,
 // d.h. die 7-Minuten-/2-Minuten-Fenster für das Ablegen gelten auch hier).
 function bindTestInputs() {
@@ -564,9 +705,22 @@ document.getElementById('autodeckBtn').addEventListener('click', () => {
   const el = document.getElementById('secondaryLog');
   playAnnouncement(autodeckAudioUrl(), text, el, 'Autodeck-Freigabe');
 });
+document.getElementById('reloadFahrplanBtn').addEventListener('click', loadFahrplan);
+document.getElementById('autoModeCheckbox').addEventListener('change', e => {
+  state.autoModeOn = e.target.checked;
+  const logEl = document.getElementById('fahrplanLog');
+  log(logEl, state.autoModeOn ? 'Automatikmodus aktiviert.' : 'Automatikmodus deaktiviert.');
+  applyAutoMode();
+});
 
 bindVoiceSelect();
-loadConfig().then(bindTestInputs);
+loadConfig().then(() => {
+  bindTestInputs();
+  loadFahrplan();
+  // Fahrplan alle 10 Minuten neu laden, Automatik-Fenster jede Minute prüfen.
+  setInterval(loadFahrplan, 10 * 60 * 1000);
+  setInterval(() => { updateAutoModeStatus(); applyAutoMode(); }, 60 * 1000);
+});
 </script>
 </body>
 </html>
