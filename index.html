@@ -93,7 +93,16 @@ const state = {
   selectedShipKey: null,
   fahrplan: null,     // geladenes fahrplan_schedule.json
   autoModeOn: false,
+  announcedScheduledDepartures: new Set(), // dedupe-Schlüssel bereits angesagter Fahrplan-Abfahrten
+  lastDepartureAnnouncedAt: {},            // stationId -> Zeitstempel (ms), verhindert Doppelansage GPS+Fahrplan
 };
+
+// Verhindert doppelte Ablege-Ansagen, wenn GPS-Erkennung und
+// Fahrplan-Zeit-Trigger für dieselbe Abfahrt beide auslösen würden.
+function departureRecentlyAnnounced(stationId, withinMs = 20 * 60 * 1000) {
+  const t = state.lastDepartureAnnouncedAt[stationId];
+  return !!t && (Date.now() - t) < withinMs;
+}
 
 const SHIP_STORAGE_KEY = 'ansage-gewaehltes-schiff';
 
@@ -535,7 +544,12 @@ function processDeparture(lat, lon, t) {
   const wasNearRecently = dep.buffer.some(entry => entry.distance <= cfg.stableRadius);
 
   if (d > cfg.departureRadius && wasNearRecently) {
-    playAnnouncement(departureAudioUrl(dep.matchedStation), departureText(dep.matchedStation), logEl, 'Ablege-Ansage');
+    if (dep.matchedStation && departureRecentlyAnnounced(dep.matchedStation.id)) {
+      log(logEl, 'Ablegen per GPS erkannt, aber Ansage wurde für diesen Hafen bereits (z.B. per Fahrplan-Zeit) ausgelöst – übersprungen.');
+    } else {
+      playAnnouncement(departureAudioUrl(dep.matchedStation), departureText(dep.matchedStation), logEl, 'Ablege-Ansage');
+      if (dep.matchedStation) state.lastDepartureAnnouncedAt[dep.matchedStation.id] = Date.now();
+    }
     resetDepartureTracking({ lat, lon, t });
   } else if (d > cfg.departureRadius && !wasNearRecently) {
     log(logEl, 'Position langsam verlassen (kein Ablegen erkannt) – Erkennung wird zurückgesetzt.');
@@ -650,6 +664,7 @@ async function loadFahrplan() {
   if (state.departure && state.departure.dockConfirmed && state.departure.matchedStation) {
     applyAutoRoute(state.departure.matchedStation, document.getElementById('fahrplanLog'));
   }
+  checkScheduledDepartures();
 }
 
 // Heutige Abfahrten des gewählten Schiffs, chronologisch.
@@ -725,6 +740,67 @@ function applyAutoMode() {
   updateAutoModeStatus();
 }
 
+// Ablege-Ansage per Systemzeit statt GPS-Bewegungserkennung: da die App
+// (noch) nicht durchgehend im Hintergrund laufen kann, reicht die
+// GPS-Anker-Erkennung (7 Minuten Stillstand nötig) oft nicht aus. Als
+// Ergänzung wird hier jede heutige Fahrplan-Abfahrt des gewählten Schiffs
+// geprüft: eine Minute vor der geplanten Zeit wird die Ansage direkt anhand
+// des Fahrplans ausgelöst (Route wie bei applyAutoRoute ermittelt). Läuft
+// im selben 60-Sekunden-Takt wie die Automatik-Prüfung; ein Dedupe-Set
+// verhindert Mehrfachauslösung, departureRecentlyAnnounced() verhindert
+// eine doppelte Ansage, falls GPS die gleiche Abfahrt ebenfalls erkennt.
+function checkScheduledDepartures() {
+  if (!state.fahrplan || !state.fahrplan.schiffe) return;
+  const ship = currentShip();
+  if (!ship) return;
+  const eintraege = state.fahrplan.schiffe[ship.key] || [];
+  const logEl = document.getElementById('fahrplanLog');
+  const now = new Date();
+  const isoHeute = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+
+  (state.config.stations || []).forEach(stationCfg => {
+    if (!stationCfg.fahrplanHafen) return;
+    eintraege
+      .filter(e => e.datum === isoHeute && e.route.startsWith(stationCfg.fahrplanHafen + '-'))
+      .forEach(e => {
+        const [h, m] = e.zeit.split(':').map(Number);
+        const abfahrtZeit = new Date(now);
+        abfahrtZeit.setHours(h, m, 0, 0);
+        const diffMs = abfahrtZeit.getTime() - now.getTime();
+        // Fenster von 90 bis 30 Sekunden vor Abfahrt = "eine Minute vorher",
+        // mit Toleranz für den 60-Sekunden-Prüftakt.
+        if (diffMs > 90000 || diffMs < 30000) return;
+
+        const key = `${ship.key}|${e.datum}|${e.zeit}|${e.route}`;
+        if (state.announcedScheduledDepartures.has(key)) return;
+        state.announcedScheduledDepartures.add(key);
+
+        if (departureRecentlyAnnounced(stationCfg.id)) {
+          log(logEl, `Fahrplan-Abfahrt ${e.zeit} (${stationCfg.name}) übersprungen – kürzlich bereits angesagt.`);
+          return;
+        }
+        const routes = stationCfg.departureRoutes || [];
+        const treffer = routes.find(r => r.fahrplanMatch && r.fahrplanMatch.direkt === e.direkt);
+        if (!treffer) {
+          log(logEl, `Fahrplan-Abfahrt ${e.zeit} (${stationCfg.name}): keine passende Route für Ansage gefunden.`);
+          return;
+        }
+        state.stations[stationCfg.id].selectedRoute = treffer.id;
+        const select = document.querySelector(`#station-${stationCfg.id} .routeSelect`);
+        if (select) select.value = treffer.id;
+        playAnnouncement(
+          departureAudioUrl(stationCfg),
+          departureText(stationCfg),
+          logEl,
+          `Ablege-Ansage nach Fahrplan (${e.zeit} ab ${stationCfg.name})`
+        );
+        state.lastDepartureAnnouncedAt[stationCfg.id] = Date.now();
+      });
+  });
+}
+
 // Testmodus: manuelle Eingaben live auswerten (Zeit läuft dabei real weiter,
 // d.h. die 7-Minuten-/2-Minuten-Fenster für das Ablegen gelten auch hier).
 function bindTestInputs() {
@@ -774,7 +850,7 @@ loadConfig().then(() => {
   loadFahrplan();
   // Fahrplan alle 10 Minuten neu laden, Automatik-Fenster jede Minute prüfen.
   setInterval(loadFahrplan, 10 * 60 * 1000);
-  setInterval(() => { updateAutoModeStatus(); applyAutoMode(); }, 60 * 1000);
+  setInterval(() => { updateAutoModeStatus(); applyAutoMode(); checkScheduledDepartures(); }, 60 * 1000);
 });
 </script>
 </body>
