@@ -452,7 +452,8 @@ function renderStations() {
     div.id = 'station-' + s.id;
     div.innerHTML = `
       <h3>${s.name}</h3>
-      <div>Distanz: <span class="dist">–</span> m</div>
+      <div>Distanz zum Einlaufen-Punkt: <span class="dist">–</span> m</div>
+      <div>Distanz zum Hafenpunkt: <span class="dockDist">–</span> m</div>
       <span class="badge arrivalBadge far">Einlaufen: bereit</span>
       <div>
         <button class="iconBtn setArrivalRefBtn" title="Einlaufen-Referenzpunkt hier setzen" aria-label="Einlaufen-Referenzpunkt hier setzen">⌖</button>
@@ -762,6 +763,10 @@ function handlePosition(lat, lon, timestamp, reportedSpeedMs) {
   state.config.stations.forEach(s => {
     const distance = haversineMeters(smoothed.lat, smoothed.lon, s.lat, s.lon);
     evaluateArrival(s, distance);
+    const dock = dockPositionOf(s);
+    const dockDistance = haversineMeters(smoothed.lat, smoothed.lon, dock.lat, dock.lon);
+    const el = document.getElementById('station-' + s.id);
+    if (el) el.querySelector('.dockDist').textContent = dockDistance.toFixed(1);
   });
   processDeparture(smoothed.lat, smoothed.lon, timestamp);
   state.lastFix = { lat, lon, t: timestamp };
