@@ -418,6 +418,55 @@ function findNearestStation(lat, lon, maxDist) {
   return (best && bestDist <= maxDist) ? best : null;
 }
 
+// Ermittelt anhand von fahrplan_schedule.json die nächste heutige Abfahrt
+// des gewählten Schiffs ab diesem Hafen (zeitlich ab jetzt) und liefert die
+// passende Route-ID aus stationCfg.departureRoutes zurück (oder null, wenn
+// kein Fahrplan/keine passende Abfahrt gefunden wurde). "direkt" markierte
+// Abfahrten (Schiff fährt ohne Zwischenstopp durch) werden auf die
+// entsprechende "über Wyk..."-Route gemappt.
+function autoRouteForStation(stationCfg) {
+  if (!state.fahrplan || !state.fahrplan.schiffe || !stationCfg.fahrplanHafen) return null;
+  const ship = currentShip();
+  if (!ship) return null;
+  const eintraege = state.fahrplan.schiffe[ship.key] || [];
+
+  const now = new Date();
+  const isoHeute = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const nowMinuten = now.getHours() * 60 + now.getMinutes();
+
+  const passende = eintraege
+    .filter(e => e.datum === isoHeute && e.route.startsWith(stationCfg.fahrplanHafen + '-'))
+    .map(e => {
+      const [h, m] = e.zeit.split(':').map(Number);
+      return { ...e, minuten: h * 60 + m };
+    })
+    .filter(e => e.minuten >= nowMinuten - 5) // kleine Toleranz für knapp verpasste Zeit
+    .sort((a, b) => a.minuten - b.minuten);
+
+  if (!passende.length) return null;
+  const naechste = passende[0];
+
+  const routes = stationCfg.departureRoutes || [];
+  const treffer = routes.find(r => r.fahrplanMatch && r.fahrplanMatch.direkt === naechste.direkt);
+  return treffer ? { routeId: treffer.id, quelle: naechste } : null;
+}
+
+// Wendet die Fahrplan-Erkennung an und aktualisiert Dropdown + State, falls
+// ein Treffer gefunden wurde (loggt das Ergebnis, ändert aber nichts, wenn
+// nichts gefunden wird - dann bleibt die zuletzt gewählte/Standard-Route).
+function applyAutoRoute(stationCfg, logEl) {
+  const ergebnis = autoRouteForStation(stationCfg);
+  if (!ergebnis) return;
+  const st = state.stations[stationCfg.id];
+  st.selectedRoute = ergebnis.routeId;
+  const select = document.querySelector(`#station-${stationCfg.id} .routeSelect`);
+  if (select) select.value = ergebnis.routeId;
+  const route = (stationCfg.departureRoutes || []).find(r => r.id === ergebnis.routeId);
+  log(logEl, `Fahrtziel automatisch aus Fahrplan übernommen (Abfahrt ${ergebnis.quelle.zeit}): ${route ? route.label : ergebnis.routeId}`);
+}
+
 function setDepartureBadge(text, cls) {
   const badge = document.getElementById('departureGlobalBadge');
   badge.textContent = 'Ablegen: ' + text;
@@ -460,6 +509,7 @@ function processDeparture(lat, lon, t) {
         const label = dep.matchedStation ? ` (${dep.matchedStation.name})` : '';
         setDepartureBadge('liegt an' + label, 'docked');
         log(logEl, `Anlegen erkannt${label} – wartet auf Ablegen.`);
+        if (dep.matchedStation) applyAutoRoute(dep.matchedStation, logEl);
       } else {
         setDepartureBadge(`wartet (${formatMinSec(elapsed)} von ${formatMinSec(cfg.stableDurationMs)})`, 'armed');
       }
@@ -595,6 +645,11 @@ async function loadFahrplan() {
   }
   updateAutoModeStatus();
   applyAutoMode();
+  // Falls das Schiff schon angelegt hat (z.B. Fahrplan war beim Anlegen noch
+  // nicht geladen), Fahrtziel jetzt nachträglich automatisch setzen.
+  if (state.departure && state.departure.dockConfirmed && state.departure.matchedStation) {
+    applyAutoRoute(state.departure.matchedStation, document.getElementById('fahrplanLog'));
+  }
 }
 
 // Heutige Abfahrten des gewählten Schiffs, chronologisch.
