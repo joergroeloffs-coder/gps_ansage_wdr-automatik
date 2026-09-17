@@ -46,6 +46,9 @@
   .berthLabel { font-size: 0.9rem; color: var(--text-muted); display: block; margin-top: 0.6rem; font-weight: 600; }
   .diagToggle { font-size: 0.9rem; color: var(--text-muted); margin: 0.75rem 0; display: flex; align-items: center; gap: 0.4rem; }
   .diagToggle input { width: 1.2rem; height: 1.2rem; }
+  .iconBtn { width: 2.3rem; height: 2.3rem; padding: 0; border-radius: 50%; font-size: 1.15rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; margin: 0 0.5rem 0.5rem 0; vertical-align: middle; }
+  .iconBtn.setRefBtn { background: var(--secondary-bg); color: var(--text); }
+  .iconBtn.resetRefBtn { background: #fbdada; color: #b3261e; }
 </style>
 </head>
 <body>
@@ -446,8 +449,8 @@ function renderStations() {
       <div>Distanz: <span class="dist">–</span> m</div>
       <span class="badge arrivalBadge far">Einlaufen: bereit</span>
       <div>
-        <button class="secondary setRefBtn">Referenzposition hier setzen</button>
-        <button class="secondary resetRefBtn">Referenzposition zurücksetzen</button>
+        <button class="iconBtn setRefBtn" title="Referenzposition hier setzen" aria-label="Referenzposition hier setzen">⌖</button>
+        <button class="iconBtn resetRefBtn" title="Referenzposition zurücksetzen" aria-label="Referenzposition zurücksetzen">✕</button>
       </div>
       <label class="berthLabel">Anleger für die nächste Ankunft</label>
       <select class="berthSelect" data-station="${s.id}">
@@ -646,14 +649,24 @@ function processDeparture(lat, lon, t) {
       dep.lastInsideAt = t;
       const elapsed = t - dep.anchor.t;
       if (elapsed >= cfg.stableDurationMs) {
-        dep.dockConfirmed = true;
-        dep.dockAnchor = { lat: dep.anchor.lat, lon: dep.anchor.lon };
-        dep.buffer = [{ t, distance: 0 }];
-        dep.matchedStation = findNearestStation(dep.dockAnchor.lat, dep.dockAnchor.lon, cfg.stationMatchRadius);
-        const label = dep.matchedStation ? ` (${dep.matchedStation.name})` : '';
-        setDepartureBadge('liegt an' + label, 'docked');
-        log(logEl, `Anlegen erkannt${label} – wartet auf Ablegen.`);
-        if (dep.matchedStation) applyAutoRoute(dep.matchedStation, logEl);
+        // Stillstand allein reicht nicht als "Anlegen" - das Schiff könnte
+        // auch mitten auf der Strecke warten (Verkehr, Ankern etc.). Nur ein
+        // Stillstand in der Nähe eines konfigurierten Hafens zählt.
+        const matched = findNearestStation(dep.anchor.lat, dep.anchor.lon, cfg.stationMatchRadius);
+        if (!matched) {
+          log(logEl, `Stillstand erkannt, aber kein Hafen in ${cfg.stationMatchRadius}m Nähe – gilt nicht als Anlegen.`);
+          dep.anchor = { lat, lon, t };
+          dep.lastInsideAt = t;
+          setDepartureBadge('bereit', 'far');
+        } else {
+          dep.dockConfirmed = true;
+          dep.dockAnchor = { lat: dep.anchor.lat, lon: dep.anchor.lon };
+          dep.buffer = [{ t, distance: 0 }];
+          dep.matchedStation = matched;
+          setDepartureBadge(`liegt an (${matched.name})`, 'docked');
+          log(logEl, `Anlegen erkannt (${matched.name}) – wartet auf Ablegen.`);
+          applyAutoRoute(matched, logEl);
+        }
       } else {
         setDepartureBadge(`wartet (${formatMinSec(elapsed)} von ${formatMinSec(cfg.stableDurationMs)})`, 'armed');
       }

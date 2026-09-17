@@ -28,7 +28,7 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
   - `driftToleranceSeconds` (Default 60): Kurze GPS-Ausreißer über `stableRadiusMeters` hinaus werden bis zu dieser Dauer ignoriert (Messung läuft weiter), statt die 7-Minuten-Messung sofort neu zu starten. Erst wenn die Position durchgehend länger als diese Zeit außerhalb bleibt, gilt das als echte Bewegung.
   - `departureRadiusMeters` (Default 50): Entfernung vom Anker, ab der ein Ablegen erkannt wird.
   - `departureWindowMinutes` (Default 2): Diese Entfernung muss innerhalb dieses Zeitfensters erreicht werden – sonst gilt es als langsames Wegdriften statt echtem Ablegen, und es wird nichts ausgelöst.
-  - `stationMatchRadiusMeters` (Default 300): Umkreis, in dem der erkannte Ablege-Anker einer konfigurierten Station zugeordnet wird (für den passenden Ansagetext).
+  - `stationMatchRadiusMeters` (Default 300): Umkreis um eine konfigurierte Station, innerhalb dessen ein erkannter Stillstand überhaupt als "Anlegen" zählt (und dieser Station zugeordnet wird). Ein Stillstand außerhalb dieses Umkreises (z.B. Warten auf freie Fahrt mitten auf der Strecke) wird explizit **nicht** als Anlegen gewertet – ohne diese Prüfung könnte sonst eine Ablege-Ansage kommen, obwohl das Schiff nie in einem Hafen war.
   - `genericText`: Fallback-Ansagetext, falls der Anker keiner Station zugeordnet werden kann.
 - `secondaryAnnouncements`: manuell auslösbare Zusatzansagen, unabhängig von GPS (z.B. `autodeckFreigabe` – Crew drückt im UI einen eigenen Button, sobald das Autodeck zum Verlassen freigegeben werden soll).
 - `fahrplanScheduleUrl`: URL zur `fahrplan_schedule.json` im `dienstplan`-Repo (siehe nächster Abschnitt).
@@ -68,7 +68,7 @@ Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Lea
 
 ## Referenzposition direkt vor Ort setzen ("Referenzposition hier setzen")
 
-Alternative zur Karte: Auf dem Schiff/am Anleger direkt in der Haupt-App bei der jeweiligen Hafen-Karte den Button "Referenzposition hier setzen" drücken – übernimmt die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung) als neuen Referenzpunkt für die Einlaufen-Erkennung dieses Hafens. Wird im Browser gespeichert (localStorage) und übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. "Referenzposition zurücksetzen" stellt die ursprünglichen Koordinaten aus `stations.json` wieder her.
+Alternative zur Karte: Auf dem Schiff/am Anleger direkt in der Haupt-App bei der jeweiligen Hafen-Karte den kleinen runden Knopf mit dem Fadenkreuz-Symbol (⌖) drücken – übernimmt die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung) als neuen Referenzpunkt für die Einlaufen-Erkennung dieses Hafens. Wird im Browser gespeichert (localStorage) und übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. Der kleine rote Knopf (✕) daneben setzt die ursprünglichen Koordinaten aus `stations.json` wieder her.
 
 ## Ansagetexte aus Bausteinen zusammensetzen (`baukasten.html`)
 
