@@ -15,8 +15,9 @@
     "autodeckFreigabe": "Bitte betreten Sie das Autodeck noch nicht. Wir werden erst einige Fahrzeuge von Deck nehmen, sodass Sie im Anschluss sicher von Bord kommen können. Ende der Durchsage."
   },
   "departureDetection": {
-    "stableRadiusMeters": 20,
+    "stableRadiusMeters": 35,
     "stableDurationMinutes": 7,
+    "driftToleranceSeconds": 60,
     "departureRadiusMeters": 50,
     "departureWindowMinutes": 2,
     "stationMatchRadiusMeters": 300,

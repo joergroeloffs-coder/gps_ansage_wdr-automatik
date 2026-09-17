@@ -336,13 +336,21 @@ function evaluateArrival(stationCfg, distance) {
 function departureConfig() {
   const cfg = state.config.departureDetection || {};
   return {
-    stableRadius: cfg.stableRadiusMeters ?? 20,
+    stableRadius: cfg.stableRadiusMeters ?? 35,
     stableDurationMs: (cfg.stableDurationMinutes ?? 7) * 60000,
+    driftToleranceMs: (cfg.driftToleranceSeconds ?? 60) * 1000,
     departureRadius: cfg.departureRadiusMeters ?? 50,
     departureWindowMs: (cfg.departureWindowMinutes ?? 2) * 60000,
     stationMatchRadius: cfg.stationMatchRadiusMeters ?? 300,
     genericText: cfg.genericText || 'Wir legen jetzt ab. Bitte nehmen Sie Platz.',
   };
+}
+
+function formatMinSec(ms) {
+  const totalSec = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function findNearestStation(lat, lon, maxDist) {
@@ -363,6 +371,7 @@ function setDepartureBadge(text, cls) {
 function resetDepartureTracking(fix) {
   state.departure = {
     anchor: fix,          // {lat, lon, t} – Startpunkt des aktuellen Stillstandsfensters
+    lastInsideAt: fix ? fix.t : null, // letzter Zeitpunkt innerhalb von stableRadius
     dockConfirmed: false,
     dockAnchor: null,
     buffer: [],           // {t, distance} der letzten departureWindowMinutes
@@ -378,13 +387,16 @@ function processDeparture(lat, lon, t) {
 
   if (!dep.anchor) {
     dep.anchor = { lat, lon, t };
+    dep.lastInsideAt = t;
     return;
   }
 
   if (!dep.dockConfirmed) {
     const d = haversineMeters(dep.anchor.lat, dep.anchor.lon, lat, lon);
     if (d <= cfg.stableRadius) {
-      if (t - dep.anchor.t >= cfg.stableDurationMs) {
+      dep.lastInsideAt = t;
+      const elapsed = t - dep.anchor.t;
+      if (elapsed >= cfg.stableDurationMs) {
         dep.dockConfirmed = true;
         dep.dockAnchor = { lat: dep.anchor.lat, lon: dep.anchor.lon };
         dep.buffer = [{ t, distance: 0 }];
@@ -392,11 +404,20 @@ function processDeparture(lat, lon, t) {
         const label = dep.matchedStation ? ` (${dep.matchedStation.name})` : '';
         setDepartureBadge('liegt an' + label, 'docked');
         log(logEl, `Anlegen erkannt${label} – wartet auf Ablegen.`);
+      } else {
+        setDepartureBadge(`wartet (${formatMinSec(elapsed)} von ${formatMinSec(cfg.stableDurationMs)})`, 'armed');
       }
-      // sonst: weiter im selben Stillstandsfenster abwarten
     } else {
-      // Schiff hat sich weiter als stableRadius bewegt: neues Fenster beginnt
-      dep.anchor = { lat, lon, t };
+      // Kurze GPS-Ausreißer (z.B. durch Stahlrumpf) werden toleriert: erst nach
+      // driftToleranceMs außerhalb von stableRadius gilt das als echte Bewegung.
+      const outsideDuration = t - (dep.lastInsideAt || dep.anchor.t);
+      if (outsideDuration > cfg.driftToleranceMs) {
+        log(logEl, `Position hat sich um ${Math.round(d)}m verändert – Stillstands-Messung neu gestartet.`);
+        dep.anchor = { lat, lon, t };
+        dep.lastInsideAt = t;
+        setDepartureBadge('bereit', 'far');
+      }
+      // sonst: als GPS-Ausreißer ignorieren, Zeitfenster läuft weiter
     }
     return;
   }
