@@ -92,6 +92,8 @@ Aktuell vorhanden:
 | `departure_generic.mp3` | Ablegen, falls kein Hafen zugeordnet werden konnte |
 | `secondary_autodeck_freigabe.mp3` | Manuelle Zusatzansage "Autodeck-Freigabe" |
 
+**Cache-Busting:** Die App hängt an jede Audio-URL `?v=<audioVersion>` an (Wert aus `stations.json`). Nach dem Ersetzen/Aktualisieren von MP3-Dateien `audioVersion` in `stations.json` um 1 erhöhen – sonst kann es sein, dass Browser oder GitHub-Pages-CDN noch die alte, zwischengespeicherte Version abspielen, obwohl die Datei im Repo schon aktuell ist.
+
 Die exakten Texte für jede Datei stehen in `stations.json` (`arrival.texts`, `departureRoutes`, `textTemplates`, `secondaryAnnouncements` – Platzhalter `{hafen}` durch den jeweiligen Hafennamen ersetzen). Hochladen entweder per `git`, oder direkt über die GitHub-Weboberfläche: Ordner `audio/` öffnen → "Add file" → "Upload files" → Dateien reinziehen → Commit.
 
 Fehlt eine Datei (z.B. bei einem neu hinzugefügten Hafen), spielt die App automatisch die Gerätestimme mit dem Text ab und vermerkt das im Log – nichts bricht dadurch ab.

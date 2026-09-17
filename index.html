@@ -141,16 +141,26 @@ function departureText(stationCfg) {
 
 // Dateinamen-Konvention für vorproduzierte Audiodateien (Ordner "audio/").
 // Existiert die Datei nicht (404), wird automatisch auf Live-TTS (Gerätestimme)
-// mit dem passenden Text zurückgefallen.
+// mit dem passenden Text zurückgefallen. Ein "?v="-Parameter (audioVersion in
+// stations.json) sorgt dafür, dass Browser/CDN nach einer Aktualisierung der
+// MP3s nicht versehentlich eine alte, gecachte Version weiterspielen.
+function audioVersionSuffix() {
+  const v = state.config.audioVersion;
+  return v ? `?v=${v}` : '';
+}
 function arrivalAudioUrl(stationCfg, berthType) {
-  return `audio/arrival_${stationCfg.id}_${berthType}.mp3`;
+  return `audio/arrival_${stationCfg.id}_${berthType}.mp3${audioVersionSuffix()}`;
 }
 function departureAudioUrl(stationCfg) {
   const route = selectedRoute(stationCfg);
-  if (route) return `audio/departure_${stationCfg.id}_${route.id}.mp3`;
-  return stationCfg ? `audio/departure_${stationCfg.id}.mp3` : `audio/departure_generic.mp3`;
+  const base = route
+    ? `audio/departure_${stationCfg.id}_${route.id}.mp3`
+    : (stationCfg ? `audio/departure_${stationCfg.id}.mp3` : `audio/departure_generic.mp3`);
+  return base + audioVersionSuffix();
 }
-const AUTODECK_AUDIO_URL = 'audio/secondary_autodeck_freigabe.mp3';
+function autodeckAudioUrl() {
+  return `audio/secondary_autodeck_freigabe.mp3${audioVersionSuffix()}`;
+}
 
 function speak(text) {
   if (!('speechSynthesis' in window)) {
@@ -552,7 +562,7 @@ document.getElementById('testTtsBtn').addEventListener('click', () => speak('Die
 document.getElementById('autodeckBtn').addEventListener('click', () => {
   const text = (state.config.secondaryAnnouncements || {}).autodeckFreigabe;
   const el = document.getElementById('secondaryLog');
-  playAnnouncement(AUTODECK_AUDIO_URL, text, el, 'Autodeck-Freigabe');
+  playAnnouncement(autodeckAudioUrl(), text, el, 'Autodeck-Freigabe');
 });
 
 bindVoiceSelect();

@@ -1,5 +1,6 @@
 {
   "language": "de-DE",
+  "audioVersion": 2,
   "hysteresisFactor": 1.5,
   "ship": {
     "name": "Schleswig-Holstein"
