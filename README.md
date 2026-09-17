@@ -41,6 +41,18 @@ Statt Koordinaten manuell zu suchen: `karte.html` im Browser öffnen (funktionie
 
 Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Leaflet-Bibliothek (CDN).
 
+## Ansagetexte aus Bausteinen zusammensetzen (`baukasten.html`)
+
+Statt jedes Mal einen kompletten Ansagetext zu diktieren: `baukasten.html` im Browser öffnen (funktioniert direkt als Datei, kein Server nötig). Enthält wiederverwendbare Textbausteine (Begrüßung, PKW-Hinweis, Fußgänger-Varianten, Schlusssatz, Ablegen, Sonstiges).
+
+1. Hafenname wählen (ersetzt `{hafen}` in den Bausteinen).
+2. Passende Bausteine per "+ Hinzufügen" in die gewünschte Reihenfolge bringen (Pfeile zum Verschieben, ✕ zum Entfernen).
+3. Ergebnis unten lesen, per "Vorhören" mit der Gerätestimme testen.
+4. Eigene neue Bausteine (z.B. weitere Eventualitäten) über das Formular unten hinzufügen – bleiben im Browser gespeichert (localStorage), auch nach einem Neuladen.
+5. Fertigen Text per "Text kopieren" übernehmen und zur Aufnahme/Integration weitergeben (z.B. hier im Chat einfügen) – die eigentliche MP3-Erzeugung (Piper) und Einbindung in `stations.json` erfolgt weiterhin über den Chat, da Piper nicht im Browser läuft.
+
+Die Bausteine sind nur Startvorschläge und können beliebig ergänzt oder gelöscht werden – die Vorgaben aus den bisherigen Ansagetexten sind als Standard-Bausteine bereits enthalten.
+
 ## Funktionsweise
 
 - **Einlaufen**: klassische Geofence-Annäherung — sobald die Distanz zum Hafen den Annäherungsradius unterschreitet, wird die Ansage einmalig abgespielt. Erst wenn das Schiff die Zone wieder deutlich verlässt, wird der Trigger erneut "scharf geschaltet" (Hysterese).

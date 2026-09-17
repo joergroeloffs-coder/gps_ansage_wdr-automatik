@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ansage-Baukasten</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #101418; color: #eee; }
+  h1 { font-size: 1.2rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; }
+  p.hint { font-size: 0.8rem; color: #aaa; margin: 0.25rem 0 0.75rem; }
+  .panel { border: 1px solid #333; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; background: #161b20; }
+  .category { margin-bottom: 0.75rem; }
+  .category h3 { font-size: 0.85rem; color: #9cf; margin: 0 0 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .block-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; border-bottom: 1px solid #232a31; font-size: 0.9rem; }
+  .block-row:last-child { border-bottom: none; }
+  .block-text { flex: 1; }
+  button { padding: 0.5rem 0.8rem; border-radius: 6px; border: none; background: #2b6; color: #032; font-weight: bold; cursor: pointer; }
+  button.small { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+  button.secondary { background: #444; color: #eee; }
+  button.danger { background: #a33; color: #fee; }
+  input[type=text], select, textarea { width: 100%; padding: 0.45rem; box-sizing: border-box; background: #1c232b; color: #eee; border: 1px solid #333; border-radius: 4px; font-size: 0.9rem; }
+  textarea { min-height: 100px; font-family: inherit; }
+  label { display: block; font-size: 0.8rem; color: #aaa; margin: 0.5rem 0 0.2rem; }
+  .composed-list { list-style: none; margin: 0; padding: 0; }
+  .composed-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem; background: #1c232b; border-radius: 6px; margin-bottom: 0.4rem; font-size: 0.9rem; }
+  .composed-list li .txt { flex: 1; }
+  .composed-list .ctrl { display: flex; gap: 0.25rem; }
+  .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 140px; }
+  .add-form { display: grid; grid-template-columns: 1fr; gap: 0.4rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
+</style>
+</head>
+<body>
+<h1>Ansage-Baukasten</h1>
+<p class="hint">Baue vollständige Ansagen aus wiederverwendbaren Textbausteinen zusammen (Begrüßung, PKW-Hinweis, Fußgänger-Variante, Schluss, …). Eigene Bausteine hinzufügbar – bleiben in diesem Browser gespeichert (localStorage).</p>
+
+<div class="panel">
+  <label>Hafenname (ersetzt {hafen} in Bausteinen)</label>
+  <select id="hafenSelect">
+    <option value="Dagebüll">Dagebüll</option>
+    <option value="Wyk auf Föhr">Wyk auf Föhr</option>
+    <option value="Wittdün auf Amrum">Wittdün auf Amrum</option>
+    <option value="__custom__">Eigener Name…</option>
+  </select>
+  <input type="text" id="hafenCustom" placeholder="Eigener Hafenname" style="display:none; margin-top:0.4rem;">
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">Bausteine (zum Hinzufügen anklicken)</h2>
+  <div id="blockCategories"></div>
+
+  <div class="add-form">
+    <label>Neuen Baustein hinzufügen</label>
+    <select id="newBlockCategory"></select>
+    <input type="text" id="newBlockLabel" placeholder="Kurzname (z.B. \"Fußgänger – Sonderfall X\")">
+    <textarea id="newBlockText" placeholder="Text des Bausteins (Platzhalter {hafen} möglich)"></textarea>
+    <button id="addBlockBtn" class="secondary">Baustein speichern</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0">Zusammengesetzte Ansage</h2>
+  <p class="hint">Reihenfolge per Pfeil ändern, Baustein per ✕ entfernen.</p>
+  <ul class="composed-list" id="composedList"></ul>
+  <label>Ergebnis</label>
+  <textarea id="resultText" readonly></textarea>
+  <div class="row" style="margin-top:0.5rem;">
+    <button id="previewBtn">Vorhören (Gerätestimme)</button>
+    <button id="copyBtn" class="secondary">Text kopieren</button>
+    <button id="clearComposedBtn" class="danger">Zusammensetzung leeren</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'ansage-baukasten-bloecke-v1';
+
+const DEFAULT_BLOCKS = {
+  begruessung: [
+    { id: 'begruessung-standard', label: 'Standard-Begrüßung', text: 'Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}.' }
+  ],
+  pkw: [
+    { id: 'pkw-standard', label: 'PKW-Hinweis Standard', text: 'Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen.' }
+  ],
+  fussgaenger: [
+    { id: 'fg-ohne-seitenausstieg', label: 'Ohne Seitenausstieg (Autodeck)', text: 'Fußgänger müssen wir leider bitten, das Schiff hier auch über das Autodeck zu verlassen.' },
+    { id: 'fg-mit-seitenausstieg-aussteigen', label: 'Mit Seitenausstieg (steigen aus)', text: 'Fußgänger steigen hier bitte wieder über den Seitenausstieg auf Höhe des Salondecks aus.' },
+    { id: 'fg-mit-seitenausstieg-bereit', label: 'Mit Seitenausstieg (steht bereit)', text: 'Für die Fußgänger steht auch hier der Seitenausstieg auf Höhe des Salondecks bereit.' }
+  ],
+  schluss: [
+    { id: 'schluss-aufenthalt', label: 'Angenehmer Aufenthalt', text: 'Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen.' },
+    { id: 'schluss-weiterreise', label: 'Angenehme Weiterreise', text: 'Wir wünschen eine angenehme Weiterreise und sagen auf Wiedersehen.' }
+  ],
+  ablegen: [
+    { id: 'ablegen-standard', label: 'Ablegen Standard', text: 'Wir legen jetzt in {hafen} ab. Bitte nehmen Sie Platz.' }
+  ],
+  sonstige: [
+    { id: 'ende-durchsage', label: 'Ende der Durchsage', text: 'Ende der Durchsage.' },
+    { id: 'autodeck-freigabe', label: 'Autodeck-Freigabe', text: 'Bitte betreten Sie das Autodeck noch nicht. Wir werden erst einige Fahrzeuge von Deck nehmen, sodass Sie im Anschluss sicher von Bord kommen können.' }
+  ]
+};
+
+const CATEGORY_LABELS = {
+  begruessung: 'Begrüßung',
+  pkw: 'PKW-Hinweis',
+  fussgaenger: 'Fußgänger-Varianten',
+  schluss: 'Schlusssatz',
+  ablegen: 'Ablegen',
+  sonstige: 'Sonstige / Ende'
+};
+
+let blocks = loadBlocks();
+let composed = []; // Liste von Baustein-Objekten (Kopien), in Reihenfolge
+
+function loadBlocks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      // Fehlende Default-Kategorien/Bausteine ergänzen, gespeicherte Zusätze behalten
+      Object.keys(DEFAULT_BLOCKS).forEach(cat => {
+        if (!stored[cat]) stored[cat] = [];
+        DEFAULT_BLOCKS[cat].forEach(db => {
+          if (!stored[cat].some(b => b.id === db.id)) stored[cat].push(db);
+        });
+      });
+      return stored;
+    }
+  } catch (e) { /* ignore, Fallback auf Defaults */ }
+  return JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+}
+
+function saveBlocks() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks)); } catch (e) { /* localStorage evtl. blockiert */ }
+}
+
+function currentHafen() {
+  const sel = document.getElementById('hafenSelect');
+  if (sel.value === '__custom__') return document.getElementById('hafenCustom').value || '{hafen}';
+  return sel.value;
+}
+
+function renderCategories() {
+  const container = document.getElementById('blockCategories');
+  container.innerHTML = '';
+  const catSelect = document.getElementById('newBlockCategory');
+  catSelect.innerHTML = '';
+
+  Object.keys(CATEGORY_LABELS).forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = CATEGORY_LABELS[cat];
+    catSelect.appendChild(opt);
+
+    const div = document.createElement('div');
+    div.className = 'category';
+    div.innerHTML = `<h3>${CATEGORY_LABELS[cat]}</h3>`;
+    (blocks[cat] || []).forEach(b => {
+      const row = document.createElement('div');
+      row.className = 'block-row';
+      row.innerHTML = `
+        <span class="block-text">${b.label}</span>
+        <button class="small" data-add="${cat}:${b.id}">+ Hinzufügen</button>
+        <button class="small danger" data-del="${cat}:${b.id}">✕</button>
+      `;
+      div.appendChild(row);
+    });
+    container.appendChild(div);
+  });
+
+  container.querySelectorAll('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [cat, id] = btn.dataset.add.split(':');
+      const block = blocks[cat].find(b => b.id === id);
+      if (block) { composed.push({ ...block }); renderComposed(); }
+    });
+  });
+  container.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [cat, id] = btn.dataset.del.split(':');
+      blocks[cat] = blocks[cat].filter(b => b.id !== id);
+      saveBlocks();
+      renderCategories();
+    });
+  });
+}
+
+function renderComposed() {
+  const list = document.getElementById('composedList');
+  list.innerHTML = '';
+  composed.forEach((b, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="txt">${b.label}</span>
+      <div class="ctrl">
+        <button class="small secondary" data-up="${i}">↑</button>
+        <button class="small secondary" data-down="${i}">↓</button>
+        <button class="small danger" data-remove="${i}">✕</button>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+  list.querySelectorAll('[data-up]').forEach(btn => btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.up, 10);
+    if (i > 0) { [composed[i-1], composed[i]] = [composed[i], composed[i-1]]; renderComposed(); }
+  }));
+  list.querySelectorAll('[data-down]').forEach(btn => btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.down, 10);
+    if (i < composed.length - 1) { [composed[i+1], composed[i]] = [composed[i], composed[i+1]]; renderComposed(); }
+  }));
+  list.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', () => {
+    const i = parseInt(btn.dataset.remove, 10);
+    composed.splice(i, 1);
+    renderComposed();
+  }));
+  updateResult();
+}
+
+function updateResult() {
+  const hafen = currentHafen();
+  const text = composed.map(b => b.text.replace(/\{hafen\}/g, hafen)).join(' ');
+  document.getElementById('resultText').value = text;
+}
+
+// Stimmenauswahl (deutsche Stimmen bevorzugt) fürs Vorhören
+let voices = [];
+function refreshVoices() {
+  voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+}
+if ('speechSynthesis' in window) {
+  refreshVoices();
+  window.speechSynthesis.onvoiceschanged = refreshVoices;
+}
+
+document.getElementById('hafenSelect').addEventListener('change', e => {
+  document.getElementById('hafenCustom').style.display = e.target.value === '__custom__' ? 'block' : 'none';
+  updateResult();
+});
+document.getElementById('hafenCustom').addEventListener('input', updateResult);
+
+document.getElementById('addBlockBtn').addEventListener('click', () => {
+  const cat = document.getElementById('newBlockCategory').value;
+  const label = document.getElementById('newBlockLabel').value.trim();
+  const text = document.getElementById('newBlockText').value.trim();
+  if (!label || !text) { alert('Bitte Kurzname und Text ausfüllen.'); return; }
+  const id = 'custom-' + Date.now();
+  blocks[cat].push({ id, label, text });
+  saveBlocks();
+  document.getElementById('newBlockLabel').value = '';
+  document.getElementById('newBlockText').value = '';
+  renderCategories();
+});
+
+document.getElementById('previewBtn').addEventListener('click', () => {
+  const text = document.getElementById('resultText').value;
+  if (!text) return;
+  if (!('speechSynthesis' in window)) { alert('Sprachausgabe wird von diesem Browser nicht unterstützt.'); return; }
+  const utter = new SpeechSynthesisUtterance(text);
+  const german = voices.filter(v => v.lang.toLowerCase().startsWith('de'));
+  if (german.length) utter.voice = german[0];
+  utter.lang = 'de-DE';
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+});
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const el = document.getElementById('resultText');
+  el.select();
+  try { await navigator.clipboard.writeText(el.value); } catch (e) { document.execCommand('copy'); }
+});
+
+document.getElementById('clearComposedBtn').addEventListener('click', () => {
+  composed = [];
+  renderComposed();
+});
+
+renderCategories();
+renderComposed();
+</script>
+</body>
+</html>
