@@ -14,10 +14,11 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 ## Konfiguration (`stations.json`)
 
 - `textTemplates.arrival`: Objekt mit einer Vorlage je Anleger-Typ – `ohneSeitenausstieg` und `mitSeitenausstieg`. Platzhalter `{hafen}` wird automatisch durch den Stationsnamen ersetzt. Fehlt eine Vorlage (z.B. `mitSeitenausstieg: null`), wird für Stationen ohne eigenen Text keine Ansage abgespielt (siehe Log-Hinweis).
-- `textTemplates.departure`: eine gemeinsame Ablege-Vorlage für alle Stationen (aktuell keine Anleger-Typ-Unterscheidung).
-- `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht). `departure.text` überschreibt entsprechend die Ablege-Vorlage.
+- `textTemplates.departure`: Fallback-Ablege-Vorlage für Stationen ohne eigene `departureRoutes` (siehe unten).
+- `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
 - `arrival.radiusMeters`: Ab dieser Entfernung zum Hafen wird die Einlaufen-Ansage ausgelöst.
-- **Anleger-Typ-Auswahl (mit/mit Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Ohne Seitenausstieg" / "Mit Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
+- **Anleger-Typ-Auswahl (mit/ohne Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Ohne Seitenausstieg" / "Mit Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
+- **`departureRoutes`** (pro Station): Liste möglicher Fahrtziele ab diesem Hafen, je mit `id`, `label` (Anzeige im Dropdown) und `text` (Ansagetext, `{hafen}` wird ersetzt). Da mehrere Routen möglich sind (z.B. ab Dagebüll nach Wyk, nach Wittdün, oder über Wyk nach Wittdün), wählt die Crew im UI vor dem Ablegen per Dropdown "Fahrtziel für die nächste Abfahrt" die passende Route – die Ablege-Ansage (Text und Audiodatei) richtet sich danach.
 - `hysteresisFactor`: Verhindert Mehrfachauslösung durch GPS-Schwankungen am Radius-Rand (gilt für Einlaufen).
 - `departureDetection`: globale Ablege-Erkennung (nicht pro Station, siehe unten):
   - `stableRadiusMeters` (Default 20): Umkreis, in dem das Schiff als "still liegend" gilt.
@@ -61,7 +62,14 @@ Die Bausteine sind nur Startvorschläge und können beliebig ergänzt oder gelö
 
 ## Vorproduzierte Audiodateien (`audio/`)
 
-Alle 11 Dateien liegen bereits im Ordner `audio/`, erzeugt mit [Piper](https://github.com/rhasspy/piper) (kostenlose, offline laufende neuronale TTS, Stimme "Thorsten", CC0-Lizenz) – keine Kosten, kein Internet zur Laufzeit nötig. Wer eine andere/bessere Stimme möchte, kann die Dateien jederzeit ersetzen (z.B. über Azure Speech Studio, ElevenLabs oder Google Cloud TTS – alle mit kostenlosem Testkontingent – oder als echte Sprachaufnahme). Die Dateien müssen exakt so heißen und im Ordner `audio/` liegen:
+Alle Dateien liegen bereits im Ordner `audio/`, erzeugt mit [Piper](https://github.com/rhasspy/piper) (kostenlose, offline laufende neuronale TTS, Stimme "Thorsten", CC0-Lizenz) – keine Kosten, kein Internet zur Laufzeit nötig. Wer eine andere/bessere Stimme möchte, kann die Dateien jederzeit ersetzen (z.B. über Azure Speech Studio, ElevenLabs oder Google Cloud TTS – alle mit kostenlosem Testkontingent – oder als echte Sprachaufnahme). Namenskonvention:
+
+- Einlaufen: `arrival_<stationId>_<berthType>.mp3` (`berthType` = `ohneSeitenausstieg` oder `mitSeitenausstieg`)
+- Ablegen (Stationen mit `departureRoutes`): `departure_<stationId>_<routeId>.mp3` – ein `routeId` pro Fahrtziel/Route, siehe `stations.json`
+- Ablegen (Stationen ohne `departureRoutes`, Fallback): `departure_<stationId>.mp3`, sonst `departure_generic.mp3`
+- Zusatzansagen: `secondary_<name>.mp3` (aktuell `secondary_autodeck_freigabe.mp3`)
+
+Aktuell vorhanden:
 
 | Datei | Inhalt |
 |---|---|
@@ -71,13 +79,18 @@ Alle 11 Dateien liegen bereits im Ordner `audio/`, erzeugt mit [Piper](https://g
 | `arrival_wyk-auf-foehr_mitSeitenausstieg.mp3` | Einlaufen Wyk auf Föhr, mit Seitenausstieg |
 | `arrival_wittduen-auf-amrum_ohneSeitenausstieg.mp3` | Einlaufen Wittdün auf Amrum, ohne Seitenausstieg |
 | `arrival_wittduen-auf-amrum_mitSeitenausstieg.mp3` | Einlaufen Wittdün auf Amrum, mit Seitenausstieg |
-| `departure_dagebuell.mp3` | Ablegen Dagebüll |
-| `departure_wyk-auf-foehr.mp3` | Ablegen Wyk auf Föhr |
-| `departure_wittduen-auf-amrum.mp3` | Ablegen Wittdün auf Amrum |
+| `departure_dagebuell_dagebuell-wyk.mp3` | Ablegen Dagebüll → Wyk auf Föhr |
+| `departure_dagebuell_dagebuell-wittduen.mp3` | Ablegen Dagebüll → Wittdün auf Amrum |
+| `departure_dagebuell_dagebuell-via-wyk-wittduen.mp3` | Ablegen Dagebüll → über Wyk auf Föhr nach Wittdün auf Amrum |
+| `departure_wyk-auf-foehr_wyk-dagebuell.mp3` | Ablegen Wyk auf Föhr → Dagebüll |
+| `departure_wyk-auf-foehr_wyk-wittduen.mp3` | Ablegen Wyk auf Föhr → Wittdün auf Amrum |
+| `departure_wittduen-auf-amrum_wittduen-dagebuell.mp3` | Ablegen Wittdün auf Amrum → Dagebüll |
+| `departure_wittduen-auf-amrum_wittduen-wyk.mp3` | Ablegen Wittdün auf Amrum → Wyk auf Föhr |
+| `departure_wittduen-auf-amrum_wittduen-via-wyk-dagebuell.mp3` | Ablegen Wittdün auf Amrum → über Wyk auf Föhr nach Dagebüll |
 | `departure_generic.mp3` | Ablegen, falls kein Hafen zugeordnet werden konnte |
 | `secondary_autodeck_freigabe.mp3` | Manuelle Zusatzansage "Autodeck-Freigabe" |
 
-Die exakten Texte für jede Datei stehen in `stations.json` (`arrival.texts`, `textTemplates`, `secondaryAnnouncements` – Platzhalter `{hafen}` durch den jeweiligen Hafennamen ersetzen). Hochladen entweder per `git`, oder direkt über die GitHub-Weboberfläche: Ordner `audio/` öffnen → "Add file" → "Upload files" → Dateien reinziehen → Commit.
+Die exakten Texte für jede Datei stehen in `stations.json` (`arrival.texts`, `departureRoutes`, `textTemplates`, `secondaryAnnouncements` – Platzhalter `{hafen}` durch den jeweiligen Hafennamen ersetzen). Hochladen entweder per `git`, oder direkt über die GitHub-Weboberfläche: Ordner `audio/` öffnen → "Add file" → "Upload files" → Dateien reinziehen → Commit.
 
 Fehlt eine Datei (z.B. bei einem neu hinzugefügten Hafen), spielt die App automatisch die Gerätestimme mit dem Text ab und vermerkt das im Log – nichts bricht dadurch ab.
 

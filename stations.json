@@ -30,7 +30,12 @@
         "texts": {
           "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Für die Fußgänger steht auch hier der Seitenausstieg auf Höhe des Salondecks bereit. Wir wünschen eine angenehme Weiterreise und sagen auf Wiedersehen. Ende der Durchsage."
         }
-      }
+      },
+      "departureRoutes": [
+        { "id": "dagebuell-wyk", "label": "nach Wyk auf Föhr", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wyk auf Föhr. Bitte nehmen Sie Platz." },
+        { "id": "dagebuell-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wittdün auf Amrum. Bitte nehmen Sie Platz." },
+        { "id": "dagebuell-via-wyk-wittduen", "label": "über Wyk auf Föhr nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren über Wyk auf Föhr nach Wittdün auf Amrum. Bitte nehmen Sie Platz." }
+      ]
     },
     {
       "id": "wyk-auf-foehr",
@@ -42,7 +47,11 @@
         "texts": {
           "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Fußgänger steigen hier bitte wieder über den Seitenausstieg auf Höhe des Salondecks aus. Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen. Ende der Durchsage."
         }
-      }
+      },
+      "departureRoutes": [
+        { "id": "wyk-dagebuell", "label": "nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren nach Dagebüll. Bitte nehmen Sie Platz." },
+        { "id": "wyk-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wittdün auf Amrum. Bitte nehmen Sie Platz." }
+      ]
     },
     {
       "id": "wittduen-auf-amrum",
@@ -54,7 +63,12 @@
         "texts": {
           "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Fußgänger steigen hier bitte wieder über den Seitenausstieg auf Höhe des Salondecks aus. Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen. Ende der Durchsage."
         }
-      }
+      },
+      "departureRoutes": [
+        { "id": "wittduen-dagebuell", "label": "nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren nach Dagebüll. Bitte nehmen Sie Platz." },
+        { "id": "wittduen-wyk", "label": "nach Wyk auf Föhr", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wyk auf Föhr. Bitte nehmen Sie Platz." },
+        { "id": "wittduen-via-wyk-dagebuell", "label": "über Wyk auf Föhr nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren über Wyk auf Föhr nach Dagebüll. Bitte nehmen Sie Platz." }
+      ]
     }
   ]
 }

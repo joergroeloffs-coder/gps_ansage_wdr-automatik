@@ -110,7 +110,20 @@ function arrivalText(stationCfg, berthType) {
   return tpl ? renderTemplate(tpl, { hafen: stationCfg.name }) : null;
 }
 
+// Liefert die aktuell für diese Station ausgewählte Abfahrts-Route
+// (Fahrtziel), oder die erste verfügbare, falls noch keine gewählt wurde.
+function selectedRoute(stationCfg) {
+  if (!stationCfg) return null;
+  const routes = stationCfg.departureRoutes || [];
+  if (!routes.length) return null;
+  const st = state.stations[stationCfg.id];
+  const routeId = st && st.selectedRoute;
+  return routes.find(r => r.id === routeId) || routes[0];
+}
+
 function departureText(stationCfg) {
+  const route = selectedRoute(stationCfg);
+  if (route) return renderTemplate(route.text, { hafen: stationCfg.name });
   if (stationCfg && stationCfg.departure && stationCfg.departure.text) return stationCfg.departure.text;
   if (stationCfg) {
     const tpl = (state.config.textTemplates || {}).departure;
@@ -126,6 +139,8 @@ function arrivalAudioUrl(stationCfg, berthType) {
   return `audio/arrival_${stationCfg.id}_${berthType}.mp3`;
 }
 function departureAudioUrl(stationCfg) {
+  const route = selectedRoute(stationCfg);
+  if (route) return `audio/departure_${stationCfg.id}_${route.id}.mp3`;
   return stationCfg ? `audio/departure_${stationCfg.id}.mp3` : `audio/departure_generic.mp3`;
 }
 const AUTODECK_AUDIO_URL = 'audio/secondary_autodeck_freigabe.mp3';
@@ -207,7 +222,12 @@ async function loadConfig() {
   const res = await fetch('stations.json', { cache: 'no-store' });
   state.config = await res.json();
   state.config.stations.forEach(s => {
-    state.stations[s.id] = { armedArrival: true, lastDistance: null, berthType: 'ohneSeitenausstieg' };
+    state.stations[s.id] = {
+      armedArrival: true,
+      lastDistance: null,
+      berthType: 'ohneSeitenausstieg',
+      selectedRoute: (s.departureRoutes && s.departureRoutes[0]) ? s.departureRoutes[0].id : null,
+    };
   });
   resetDepartureTracking(null);
   renderStations();
@@ -232,8 +252,14 @@ function renderStations() {
       <div>
         <button class="secondary previewBtn" data-berth="ohneSeitenausstieg">Vorhören: ohne Seitenausstieg</button>
         <button class="secondary previewBtn" data-berth="mitSeitenausstieg">Vorhören: mit Seitenausstieg</button>
-        <button class="secondary previewDepartureBtn">Vorhören: Ablegen</button>
       </div>
+      ${(s.departureRoutes && s.departureRoutes.length) ? `
+      <label class="berthLabel">Fahrtziel für die nächste Abfahrt</label>
+      <select class="routeSelect">
+        ${s.departureRoutes.map(r => `<option value="${r.id}">${r.label}</option>`).join('')}
+      </select>
+      <div><button class="secondary previewDepartureBtn">Vorhören: Ablegen</button></div>
+      ` : ''}
       <div class="log"></div>
     `;
     div.querySelector('.berthSelect').addEventListener('change', e => {
@@ -245,9 +271,18 @@ function renderStations() {
         playAnnouncement(arrivalAudioUrl(s, berth), arrivalText(s, berth), div.querySelector('.log'), 'Vorhören Einlaufen (' + berth + ')');
       });
     });
-    div.querySelector('.previewDepartureBtn').addEventListener('click', () => {
-      playAnnouncement(departureAudioUrl(s), departureText(s), div.querySelector('.log'), 'Vorhören Ablegen');
-    });
+    const routeSelect = div.querySelector('.routeSelect');
+    if (routeSelect) {
+      routeSelect.addEventListener('change', e => {
+        state.stations[s.id].selectedRoute = e.target.value;
+      });
+    }
+    const previewDepartureBtn = div.querySelector('.previewDepartureBtn');
+    if (previewDepartureBtn) {
+      previewDepartureBtn.addEventListener('click', () => {
+        playAnnouncement(departureAudioUrl(s), departureText(s), div.querySelector('.log'), 'Vorhören Ablegen');
+      });
+    }
     container.appendChild(div);
   });
 }
