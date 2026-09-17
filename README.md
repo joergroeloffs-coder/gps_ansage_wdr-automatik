@@ -19,7 +19,7 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 - `textTemplates.departure`: Fallback-Ablege-Vorlage für Stationen ohne eigene `departureRoutes` (siehe unten).
 - `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
 - `arrival.radiusMeters`: Ab dieser Entfernung zum Hafen wird die Einlaufen-Ansage ausgelöst.
-- **Anleger-Typ-Auswahl (mit/ohne Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Ohne Seitenausstieg" / "Mit Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
+- **Anleger-Typ-Auswahl (mit/ohne Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Mit Seitenausstieg" (Standard) / "Ohne Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
 - **`departureRoutes`** (pro Station): Liste möglicher Fahrtziele ab diesem Hafen, je mit `id`, `label` (Anzeige im Dropdown) und `text` (Ansagetext, Muster "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach/über … {ziel}."). Da mehrere Routen möglich sind (z.B. ab Dagebüll nach Wyk, nach Wittdün, oder über Wyk nach Wittdün), wählt die Crew im UI vor dem Ablegen per Dropdown "Fahrtziel für die nächste Abfahrt" die passende Route – die Ablege-Ansage (Text und Audiodatei) richtet sich danach.
 - `hysteresisFactor`: Verhindert Mehrfachauslösung durch GPS-Schwankungen am Radius-Rand (gilt für Einlaufen).
 - `departureDetection`: globale Ablege-Erkennung (nicht pro Station, siehe unten):
@@ -119,7 +119,11 @@ Fehlt eine Datei (z.B. bei einem neu hinzugefügten Hafen), spielt die App autom
 
 ## Testmodus
 
-Im UI gibt es einen Testmodus mit manueller Eingabe von Position und Geschwindigkeit, um die Auslöselogik ohne echte Fahrt zu testen.
+Im UI gibt es unter "Erweitert: Testmodus & Diagnose" (einklappbar, unten auf der Seite) einen Testmodus mit manueller Eingabe von Position und Geschwindigkeit, um die Auslöselogik ohne echte Fahrt zu testen, sowie einen TTS-Testknopf.
+
+## Oberfläche / Design
+
+Helles Design (weißer Hintergrund, blauer Akzent), große Buttons für die Bedienung mit Handschuhen/bei Sonnenlicht. Protokoll-/Log-Ausgaben (pro Hafen, Ablegen, Fahrplan) sind standardmäßig ausgeblendet – Checkbox "Protokoll/Diagnose anzeigen" oben schaltet sie sichtbar. Der Testmodus liegt in einem einklappbaren "Erweitert"-Bereich ganz unten, damit die normale Bedienung (Schiff, Anleger, Fahrtziel, Start/Stopp, Status) nicht durch Debug-Informationen überladen wird.
 
 ## Offene Punkte / nächste Schritte
 

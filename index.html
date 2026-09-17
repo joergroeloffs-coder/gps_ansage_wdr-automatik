@@ -7,30 +7,45 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#0c2f4a">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ansage">
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #101418; color: #eee; }
-  h1 { font-size: 1.2rem; margin-bottom: 0.5rem; }
-  h2 { font-size: 1rem; margin: 1rem 0 0.5rem; }
-  .status { padding: 0.5rem; border-radius: 6px; background: #1c232b; margin-bottom: 1rem; }
-  .station { border: 1px solid #333; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; background: #161b20; }
-  .station h3 { margin: 0 0 0.25rem 0; font-size: 1rem; }
-  .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-right: 0.3rem; }
-  .badge.far { background: #333; }
-  .badge.armed { background: #2b5; color: #032; }
-  .badge.docked { background: #b83; color: #210; }
-  .badge.triggered { background: #555; }
-  .log { font-size: 0.8rem; color: #9c9; white-space: pre-wrap; max-height: 6rem; overflow-y: auto; }
-  button { padding: 0.6rem 1rem; border-radius: 6px; border: none; background: #2b6; color: #032; font-weight: bold; margin-right: 0.5rem; margin-bottom: 0.5rem; }
-  button.secondary { background: #444; color: #eee; }
-  .test-box { border: 1px dashed #555; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; }
-  .test-box label { display: block; font-size: 0.8rem; margin-top: 0.4rem; }
-  input[type=number] { width: 100%; padding: 0.4rem; box-sizing: border-box; }
+  :root {
+    --bg: #f3f6fa;
+    --surface: #ffffff;
+    --text: #16202a;
+    --text-muted: #5b6b7a;
+    --border: #d7dee6;
+    --accent: #1565c0;
+    --accent-contrast: #ffffff;
+    --secondary-bg: #e7edf4;
+    --secondary-text: #16202a;
+  }
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: var(--bg); color: var(--text); }
+  h1 { font-size: 1.3rem; margin-bottom: 0.75rem; }
+  h2 { font-size: 1.1rem; margin: 1.25rem 0 0.6rem; }
+  .status { padding: 0.75rem 1rem; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 1rem; font-size: 1.05rem; }
+  .station { border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 0.9rem; background: var(--surface); }
+  .station h3 { margin: 0 0 0.4rem 0; font-size: 1.1rem; }
+  .badge { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.85rem; margin-right: 0.4rem; margin-bottom: 0.4rem; font-weight: 600; }
+  .badge.far { background: #e2e8f0; color: #475569; }
+  .badge.armed { background: #d7f5df; color: #1e7a37; }
+  .badge.docked { background: #ffe6bd; color: #8a5a10; }
+  .badge.triggered { background: #dbe4ee; color: #3a4b5c; }
+  .log { display: none; font-size: 0.8rem; color: var(--text-muted); white-space: pre-wrap; max-height: 6rem; overflow-y: auto; background: var(--bg); border-radius: 8px; padding: 0.5rem; margin-top: 0.5rem; }
+  body.show-logs .log { display: block; }
+  button { padding: 0.95rem 1.4rem; border-radius: 12px; border: none; background: var(--accent); color: var(--accent-contrast); font-weight: 700; font-size: 1.05rem; margin-right: 0.6rem; margin-bottom: 0.6rem; }
+  button.secondary { background: var(--secondary-bg); color: var(--secondary-text); }
+  details.test-box { border: 1px solid var(--border); border-radius: 12px; padding: 0.9rem 1rem; margin-top: 1.25rem; background: var(--surface); }
+  details.test-box summary { font-weight: 700; cursor: pointer; font-size: 1.05rem; }
+  details.test-box label { display: block; font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-muted); }
+  input[type=number] { width: 100%; padding: 0.6rem; box-sizing: border-box; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
   input[type=range] { width: 100%; }
-  select.berthSelect { width: 100%; padding: 0.4rem; margin-top: 0.4rem; background: #1c232b; color: #eee; border: 1px solid #333; border-radius: 4px; }
-  .berthLabel { font-size: 0.8rem; color: #aaa; display: block; margin-top: 0.5rem; }
+  select.berthSelect { width: 100%; padding: 0.7rem; margin-top: 0.4rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; font-size: 1.05rem; }
+  .berthLabel { font-size: 0.9rem; color: var(--text-muted); display: block; margin-top: 0.6rem; font-weight: 600; }
+  .diagToggle { font-size: 0.9rem; color: var(--text-muted); margin: 0.75rem 0; display: flex; align-items: center; gap: 0.4rem; }
+  .diagToggle input { width: 1.2rem; height: 1.2rem; }
 </style>
 </head>
 <body>
@@ -45,12 +60,13 @@
 
 <button id="startBtn">GPS-Tracking starten</button>
 <button id="stopBtn" class="secondary">Stoppen</button>
-<button id="testTtsBtn" class="secondary">TTS testen</button>
+
+<label class="diagToggle"><input type="checkbox" id="diagToggle"> Protokoll/Diagnose anzeigen</label>
 
 <h2>Fahrplan-Automatik</h2>
 <div class="station">
   <label class="berthLabel"><input type="checkbox" id="autoModeCheckbox"> Automatikmodus: GPS-Tracking automatisch zu den Abfahrtszeiten des gewählten Schiffs ein-/ausschalten</label>
-  <div id="autoModeStatus" class="hint" style="font-size:0.85rem;color:#aaa;">Fahrplan wird geladen…</div>
+  <div id="autoModeStatus" style="font-size:0.9rem;color:var(--text-muted);margin-top:0.4rem;">Fahrplan wird geladen…</div>
   <button class="secondary" id="reloadFahrplanBtn">Fahrplan aktualisieren</button>
   <div class="log" id="fahrplanLog"></div>
 </div>
@@ -70,16 +86,17 @@
   <div class="log" id="departureLog"></div>
 </div>
 
-<div class="test-box">
-  <strong>Testmodus (manuelle Position/Geschwindigkeit)</strong>
-  <label>Aktiv <input type="checkbox" id="testMode"></label>
+<details class="test-box">
+  <summary>Erweitert: Testmodus &amp; Diagnose</summary>
+  <button class="secondary" id="testTtsBtn">TTS testen</button>
+  <label>Testmodus aktiv (manuelle Position/Geschwindigkeit) <input type="checkbox" id="testMode"></label>
   <label>Breitengrad (lat)</label>
   <input type="number" id="testLat" step="0.0001" value="54.0000">
   <label>Längengrad (lon)</label>
   <input type="number" id="testLon" step="0.0001" value="10.0000">
   <label>Geschwindigkeit (km/h): <span id="testSpeedVal">0</span></label>
   <input type="range" id="testSpeed" min="0" max="30" step="0.5" value="0">
-</div>
+</details>
 
 <script>
 const state = {
@@ -279,7 +296,7 @@ async function loadConfig() {
     state.stations[s.id] = {
       armedArrival: true,
       lastDistance: null,
-      berthType: 'ohneSeitenausstieg',
+      berthType: 'mitSeitenausstieg',
       selectedRoute: (s.departureRoutes && s.departureRoutes[0]) ? s.departureRoutes[0].id : null,
     };
   });
@@ -318,8 +335,8 @@ function renderStations() {
       <span class="badge arrivalBadge far">Einlaufen: bereit</span>
       <label class="berthLabel">Anleger für die nächste Ankunft</label>
       <select class="berthSelect" data-station="${s.id}">
-        <option value="ohneSeitenausstieg">Ohne Seitenausstieg</option>
         <option value="mitSeitenausstieg">Mit Seitenausstieg</option>
+        <option value="ohneSeitenausstieg">Ohne Seitenausstieg</option>
       </select>
       <div>
         <button class="secondary previewBtn" data-berth="ohneSeitenausstieg">Vorhören: ohne Seitenausstieg</button>
@@ -837,6 +854,9 @@ document.getElementById('autodeckBtn').addEventListener('click', () => {
   playAnnouncement(autodeckAudioUrl(), text, el, 'Autodeck-Freigabe');
 });
 document.getElementById('reloadFahrplanBtn').addEventListener('click', loadFahrplan);
+document.getElementById('diagToggle').addEventListener('change', e => {
+  document.body.classList.toggle('show-logs', e.target.checked);
+});
 document.getElementById('autoModeCheckbox').addEventListener('change', e => {
   state.autoModeOn = e.target.checked;
   const logEl = document.getElementById('fahrplanLog');
