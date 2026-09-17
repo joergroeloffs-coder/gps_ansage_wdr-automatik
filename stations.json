@@ -2,6 +2,7 @@
   "language": "de-DE",
   "audioVersion": 3,
   "hysteresisFactor": 1.5,
+  "positionSmoothingSeconds": 15,
   "fleet": [
     { "key": "NORDFRIESLAND", "audioKey": "nordfriesland", "name": "Nordfriesland", "bgColor": "#fbe36b" },
     { "key": "NORDERAUE", "audioKey": "norderaue", "name": "Norderaue", "bgColor": "#e6e6e6" },
@@ -30,7 +31,7 @@
     "driftToleranceSeconds": 60,
     "departureRadiusMeters": 50,
     "departureWindowMinutes": 2,
-    "stationMatchRadiusMeters": 300,
+    "stationMatchRadiusMeters": 50,
     "genericText": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab."
   },
   "stations": [

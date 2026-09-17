@@ -107,7 +107,9 @@ const state = {
   stations: {},   // id -> {armedArrival, lastDistance}
   departure: null, // siehe resetDepartureTracking()
   watchId: null,
-  lastFix: null,  // {lat, lon, t}
+  lastFix: null,  // {lat, lon, t} - Rohposition, für Geschwindigkeitsberechnung
+  positionBuffer: [], // Rohpositionen der letzten positionSmoothingSeconds
+  smoothedFix: null,  // {lat, lon, t} - geglättete Position, für Anlegen/Ablegen/Referenzposition
   selectedVoice: null,
   wakeLock: null,
   selectedShipKey: null,
@@ -317,8 +319,8 @@ function setReferencePosition(stationCfg, logEl) {
     saveReferenceOverrides(overrides);
     log(logEl, `Referenzposition gesetzt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
   };
-  if (state.lastFix && (Date.now() - state.lastFix.t) < 30000) {
-    apply(state.lastFix.lat, state.lastFix.lon);
+  if (state.smoothedFix && (Date.now() - state.smoothedFix.t) < 30000) {
+    apply(state.smoothedFix.lat, state.smoothedFix.lon);
     return;
   }
   if (!('geolocation' in navigator)) {
@@ -719,15 +721,32 @@ function computeSpeedKmh(lat, lon, timestamp, reportedSpeedMs) {
   return 0;
 }
 
+// Glättet die GPS-Position über ein gleitendes Zeitfenster (Default 15s):
+// statt jede einzelne (verrauschte) Rohposition direkt zu verwenden, wird
+// der Mittelwert aller Positionen der letzten positionSmoothingSeconds
+// gebildet. Wichtig fürs Anlegen/Ablegen, wo es auf eine stabile
+// "Parkposition" statt auf einzelne GPS-Ausreißer ankommt.
+function updateSmoothedPosition(lat, lon, t) {
+  const windowMs = (state.config.positionSmoothingSeconds ?? 15) * 1000;
+  state.positionBuffer.push({ lat, lon, t });
+  state.positionBuffer = state.positionBuffer.filter(p => t - p.t <= windowMs);
+  const n = state.positionBuffer.length;
+  const avgLat = state.positionBuffer.reduce((sum, p) => sum + p.lat, 0) / n;
+  const avgLon = state.positionBuffer.reduce((sum, p) => sum + p.lon, 0) / n;
+  state.smoothedFix = { lat: avgLat, lon: avgLon, t };
+  return state.smoothedFix;
+}
+
 function handlePosition(lat, lon, timestamp, reportedSpeedMs) {
   const speedKmh = computeSpeedKmh(lat, lon, timestamp, reportedSpeedMs);
+  const smoothed = updateSmoothedPosition(lat, lon, timestamp);
   document.getElementById('globalStatus').textContent =
-    `Position: ${lat.toFixed(5)}, ${lon.toFixed(5)} | Geschwindigkeit: ${speedKmh.toFixed(1)} km/h`;
+    `Position: ${lat.toFixed(5)}, ${lon.toFixed(5)} (geglättet: ${smoothed.lat.toFixed(5)}, ${smoothed.lon.toFixed(5)}) | Geschwindigkeit: ${speedKmh.toFixed(1)} km/h`;
   state.config.stations.forEach(s => {
-    const distance = haversineMeters(lat, lon, s.lat, s.lon);
+    const distance = haversineMeters(smoothed.lat, smoothed.lon, s.lat, s.lon);
     evaluateArrival(s, distance);
   });
-  processDeparture(lat, lon, timestamp);
+  processDeparture(smoothed.lat, smoothed.lon, timestamp);
   state.lastFix = { lat, lon, t: timestamp };
 }
 
