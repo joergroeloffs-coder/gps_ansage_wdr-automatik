@@ -49,7 +49,7 @@ Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Lea
 
 ## Vorproduzierte Audiodateien (`audio/`)
 
-Für gleichbleibend gute, akzentfreie Ansagen legt ihr die Texte einmalig als MP3 ab (z.B. erzeugt über Azure Speech Studio, ElevenLabs oder Google Cloud TTS – alle bieten kostenlose Testkontingente – oder als echte Sprachaufnahme). Die Dateien müssen exakt so heißen und im Ordner `audio/` liegen:
+Alle 11 Dateien liegen bereits im Ordner `audio/`, erzeugt mit [Piper](https://github.com/rhasspy/piper) (kostenlose, offline laufende neuronale TTS, Stimme "Thorsten", CC0-Lizenz) – keine Kosten, kein Internet zur Laufzeit nötig. Wer eine andere/bessere Stimme möchte, kann die Dateien jederzeit ersetzen (z.B. über Azure Speech Studio, ElevenLabs oder Google Cloud TTS – alle mit kostenlosem Testkontingent – oder als echte Sprachaufnahme). Die Dateien müssen exakt so heißen und im Ordner `audio/` liegen:
 
 | Datei | Inhalt |
 |---|---|
@@ -67,7 +67,7 @@ Für gleichbleibend gute, akzentfreie Ansagen legt ihr die Texte einmalig als MP
 
 Die exakten Texte für jede Datei stehen in `stations.json` (`arrival.texts`, `textTemplates`, `secondaryAnnouncements` – Platzhalter `{hafen}` durch den jeweiligen Hafennamen ersetzen). Hochladen entweder per `git`, oder direkt über die GitHub-Weboberfläche: Ordner `audio/` öffnen → "Add file" → "Upload files" → Dateien reinziehen → Commit.
 
-Fehlt eine Datei (z.B. noch nicht produziert), spielt die App automatisch die Gerätestimme mit dem Text ab und vermerkt das im Log – nichts bricht dadurch ab.
+Fehlt eine Datei (z.B. bei einem neu hinzugefügten Hafen), spielt die App automatisch die Gerätestimme mit dem Text ab und vermerkt das im Log – nichts bricht dadurch ab.
 
 ## Testmodus
 
@@ -75,7 +75,6 @@ Im UI gibt es einen Testmodus mit manueller Eingabe von Position und Geschwindig
 
 ## Offene Punkte / nächste Schritte
 
-- Ansagetext "Mit Seitenausstieg" für Dagebüll noch nicht definiert (aktuell nur für Wyk auf Föhr und Wittdün auf Amrum hinterlegt).
 - Ansagetexte für Ablegen (Vorlage gilt bisher pauschal, keine Anleger-Typ-Unterscheidung) ggf. noch anpassen.
 - Weitere "Begebenheiten" (über Einlaufen/Ablegen hinaus) als zusätzliche Einträge in `stations.json` bzw. als eigener Ereignistyp ergänzen, sobald definiert.
 - Test auf echtem Android-Gerät/Schiff zur Kalibrierung von Radien und Zeitfenstern.

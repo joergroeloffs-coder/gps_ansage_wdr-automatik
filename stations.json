@@ -25,7 +25,12 @@
       "name": "Dagebüll",
       "lat": 54.726238,
       "lon": 8.678464,
-      "arrival": { "radiusMeters": 100 }
+      "arrival": {
+        "radiusMeters": 100,
+        "texts": {
+          "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Für die Fußgänger steht auch hier der Seitenausstieg auf Höhe des Salondecks bereit. Wir wünschen eine angenehme Weiterreise und sagen auf Wiedersehen. Ende der Durchsage."
+        }
+      }
     },
     {
       "id": "wyk-auf-foehr",
