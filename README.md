@@ -66,6 +66,10 @@ Statt Koordinaten manuell zu suchen: `karte.html` im Browser öffnen (funktionie
 
 Benötigt Internetzugang zum Laden der Kartenkacheln (OpenStreetMap) und der Leaflet-Bibliothek (CDN).
 
+## Referenzposition direkt vor Ort setzen ("Referenzposition hier setzen")
+
+Alternative zur Karte: Auf dem Schiff/am Anleger direkt in der Haupt-App bei der jeweiligen Hafen-Karte den Button "Referenzposition hier setzen" drücken – übernimmt die aktuelle GPS-Position (laufendes Tracking, sonst einmalige Ortung) als neuen Referenzpunkt für die Einlaufen-Erkennung dieses Hafens. Wird im Browser gespeichert (localStorage) und übersteht Neuladen der Seite, ändert aber nicht `stations.json` selbst – bei einem neuen Gerät oder geleertem Browser-Speicher gelten wieder die Werte aus `stations.json`. "Referenzposition zurücksetzen" stellt die ursprünglichen Koordinaten aus `stations.json` wieder her.
+
 ## Ansagetexte aus Bausteinen zusammensetzen (`baukasten.html`)
 
 Statt jedes Mal einen kompletten Ansagetext zu diktieren: `baukasten.html` im Browser öffnen (funktioniert direkt als Datei, kein Server nötig). Enthält wiederverwendbare Textbausteine (Begrüßung, PKW-Hinweis, Fußgänger-Varianten, Schlusssatz, Ablegen, Sonstiges).

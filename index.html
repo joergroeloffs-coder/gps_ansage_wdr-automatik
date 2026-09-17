@@ -289,10 +289,70 @@ function bindVoiceSelect() {
   }
 }
 
+const REFERENCE_POSITIONS_KEY = 'ansage-referenzpositionen';
+
+function loadReferenceOverrides() {
+  try { return JSON.parse(localStorage.getItem(REFERENCE_POSITIONS_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+function saveReferenceOverrides(overrides) {
+  try { localStorage.setItem(REFERENCE_POSITIONS_KEY, JSON.stringify(overrides)); }
+  catch (e) { /* localStorage evtl. blockiert - Übersteuerung gilt dann nur für diese Sitzung */ }
+}
+
+// Übernimmt die aktuelle GPS-Position (laufendes Tracking oder einmalige
+// Abfrage) als neuen Referenzpunkt für die Einlaufen-Erkennung dieser
+// Station. Wird lokal gespeichert (localStorage) und überlebt Neuladen,
+// überschreibt aber nicht stations.json selbst - "Zurücksetzen" stellt die
+// Werte aus stations.json wieder her.
+function setReferencePosition(stationCfg, logEl) {
+  const apply = (lat, lon) => {
+    stationCfg.lat = lat;
+    stationCfg.lon = lon;
+    const overrides = loadReferenceOverrides();
+    overrides[stationCfg.id] = { lat, lon };
+    saveReferenceOverrides(overrides);
+    log(logEl, `Referenzposition gesetzt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`);
+  };
+  if (state.lastFix && (Date.now() - state.lastFix.t) < 30000) {
+    apply(state.lastFix.lat, state.lastFix.lon);
+    return;
+  }
+  if (!('geolocation' in navigator)) {
+    log(logEl, 'Geolocation wird von diesem Browser nicht unterstützt.');
+    return;
+  }
+  log(logEl, 'Ermittle aktuelle Position…');
+  navigator.geolocation.getCurrentPosition(
+    pos => apply(pos.coords.latitude, pos.coords.longitude),
+    err => log(logEl, 'Position konnte nicht ermittelt werden: ' + err.message),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function resetReferencePosition(stationCfg, logEl) {
+  if (stationCfg._defaultLat === undefined) return;
+  stationCfg.lat = stationCfg._defaultLat;
+  stationCfg.lon = stationCfg._defaultLon;
+  const overrides = loadReferenceOverrides();
+  delete overrides[stationCfg.id];
+  saveReferenceOverrides(overrides);
+  log(logEl, `Referenzposition zurückgesetzt auf Standard: ${stationCfg.lat.toFixed(6)}, ${stationCfg.lon.toFixed(6)}`);
+}
+
 async function loadConfig() {
   const res = await fetch('stations.json', { cache: 'no-store' });
   state.config = await res.json();
+  const overrides = loadReferenceOverrides();
   state.config.stations.forEach(s => {
+    // Originalwerte aus stations.json merken, bevor eine lokale
+    // Referenzposition (falls vorhanden) angewendet wird - für "Zurücksetzen".
+    s._defaultLat = s.lat;
+    s._defaultLon = s.lon;
+    if (overrides[s.id]) {
+      s.lat = overrides[s.id].lat;
+      s.lon = overrides[s.id].lon;
+    }
     state.stations[s.id] = {
       armedArrival: true,
       lastDistance: null,
@@ -385,6 +445,10 @@ function renderStations() {
       <h3>${s.name}</h3>
       <div>Distanz: <span class="dist">–</span> m</div>
       <span class="badge arrivalBadge far">Einlaufen: bereit</span>
+      <div>
+        <button class="secondary setRefBtn">Referenzposition hier setzen</button>
+        <button class="secondary resetRefBtn">Referenzposition zurücksetzen</button>
+      </div>
       <label class="berthLabel">Anleger für die nächste Ankunft</label>
       <select class="berthSelect" data-station="${s.id}">
         <option value="mitSeitenausstieg">Mit Seitenausstieg</option>
@@ -424,6 +488,8 @@ function renderStations() {
         playAnnouncement(departureAudioUrl(s), departureText(s), div.querySelector('.log'), 'Vorhören Ablegen');
       });
     }
+    div.querySelector('.setRefBtn').addEventListener('click', () => setReferencePosition(s, div.querySelector('.log')));
+    div.querySelector('.resetRefBtn').addEventListener('click', () => resetReferencePosition(s, div.querySelector('.log')));
     container.appendChild(div);
   });
 }
