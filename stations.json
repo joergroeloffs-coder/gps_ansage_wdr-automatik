@@ -41,8 +41,8 @@
       "fahrplanHafen": "Dagebüll",
       "lat": 54.726238,
       "lon": 8.678464,
-      "dockLat": 54.730222,
-      "dockLon": 8.691611,
+      "dockLat": 54.730700,
+      "dockLon": 8.690171,
       "arrival": {
         "radiusMeters": 100,
         "texts": {
@@ -59,8 +59,10 @@
       "id": "wyk-auf-foehr",
       "name": "Wyk auf Föhr",
       "fahrplanHafen": "Wyk",
-      "lat": 54.691797,
-      "lon": 8.584753,
+      "lat": 54.690381,
+      "lon": 8.587778,
+      "dockLat": 54.693052,
+      "dockLon": 8.576768,
       "arrival": {
         "radiusMeters": 100,
         "texts": {
@@ -76,8 +78,10 @@
       "id": "wittduen-auf-amrum",
       "name": "Wittdün auf Amrum",
       "fahrplanHafen": "Wittdün",
-      "lat": 54.635560,
-      "lon": 8.423644,
+      "lat": 54.632439,
+      "lon": 8.411615,
+      "dockLat": 54.629117,
+      "dockLon": 8.397447,
       "arrival": {
         "radiusMeters": 100,
         "texts": {
