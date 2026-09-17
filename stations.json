@@ -39,8 +39,8 @@
       "id": "dagebuell",
       "name": "Dagebüll",
       "fahrplanHafen": "Dagebüll",
-      "lat": 54.726238,
-      "lon": 8.678464,
+      "lat": 54.730222,
+      "lon": 8.691611,
       "arrival": {
         "radiusMeters": 100,
         "texts": {
