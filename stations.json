@@ -1,6 +1,6 @@
 {
   "language": "de-DE",
-  "audioVersion": 3,
+  "audioVersion": 4,
   "hysteresisFactor": 1.5,
   "positionSmoothingSeconds": 15,
   "fleet": [
