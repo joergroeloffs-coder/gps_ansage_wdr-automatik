@@ -95,9 +95,16 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// Ersetzt Platzhalter wie {hafen} in einer Textvorlage.
+// Ersetzt Platzhalter wie {hafen} oder {schiff} in einer Textvorlage.
 function renderTemplate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, key) => (vars[key] ?? ''));
+}
+
+function templateVars(stationCfg) {
+  return {
+    hafen: stationCfg ? stationCfg.name : '',
+    schiff: (state.config.ship || {}).name || '',
+  };
 }
 
 // Liefert den Einlaufen-Ansagetext für den aktuell ausgewählten Anleger-Typ
@@ -105,9 +112,9 @@ function renderTemplate(template, vars) {
 // globale Vorlage > null (= kein Text hinterlegt, keine Ansage möglich).
 function arrivalText(stationCfg, berthType) {
   const stationOverride = (stationCfg.arrival.texts || {})[berthType];
-  if (stationOverride) return renderTemplate(stationOverride, { hafen: stationCfg.name });
+  if (stationOverride) return renderTemplate(stationOverride, templateVars(stationCfg));
   const tpl = ((state.config.textTemplates || {}).arrival || {})[berthType];
-  return tpl ? renderTemplate(tpl, { hafen: stationCfg.name }) : null;
+  return tpl ? renderTemplate(tpl, templateVars(stationCfg)) : null;
 }
 
 // Liefert die aktuell für diese Station ausgewählte Abfahrts-Route
@@ -123,13 +130,13 @@ function selectedRoute(stationCfg) {
 
 function departureText(stationCfg) {
   const route = selectedRoute(stationCfg);
-  if (route) return renderTemplate(route.text, { hafen: stationCfg.name });
-  if (stationCfg && stationCfg.departure && stationCfg.departure.text) return stationCfg.departure.text;
+  if (route) return renderTemplate(route.text, templateVars(stationCfg));
+  if (stationCfg && stationCfg.departure && stationCfg.departure.text) return renderTemplate(stationCfg.departure.text, templateVars(stationCfg));
   if (stationCfg) {
     const tpl = (state.config.textTemplates || {}).departure;
-    if (tpl) return renderTemplate(tpl, { hafen: stationCfg.name });
+    if (tpl) return renderTemplate(tpl, templateVars(stationCfg));
   }
-  return departureConfig().genericText;
+  return renderTemplate(departureConfig().genericText, templateVars(null));
 }
 
 // Dateinamen-Konvention für vorproduzierte Audiodateien (Ordner "audio/").

@@ -1,12 +1,15 @@
 {
   "language": "de-DE",
   "hysteresisFactor": 1.5,
+  "ship": {
+    "name": "Schleswig-Holstein"
+  },
   "textTemplates": {
     "arrival": {
       "ohneSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Fußgänger müssen wir leider bitten, das Schiff hier auch über das Autodeck zu verlassen. Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen. Ende der Durchsage.",
       "mitSeitenausstieg": null
     },
-    "departure": "Wir legen jetzt in {hafen} ab. Bitte nehmen Sie Platz."
+    "departure": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab."
   },
   "secondaryAnnouncements": {
     "autodeckFreigabe": "Bitte betreten Sie das Autodeck noch nicht. Wir werden erst einige Fahrzeuge von Deck nehmen, sodass Sie im Anschluss sicher von Bord kommen können. Ende der Durchsage."
@@ -17,7 +20,7 @@
     "departureRadiusMeters": 50,
     "departureWindowMinutes": 2,
     "stationMatchRadiusMeters": 300,
-    "genericText": "Wir legen jetzt ab. Bitte nehmen Sie Platz."
+    "genericText": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab."
   },
   "stations": [
     {
@@ -32,9 +35,9 @@
         }
       },
       "departureRoutes": [
-        { "id": "dagebuell-wyk", "label": "nach Wyk auf Föhr", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wyk auf Föhr. Bitte nehmen Sie Platz." },
-        { "id": "dagebuell-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wittdün auf Amrum. Bitte nehmen Sie Platz." },
-        { "id": "dagebuell-via-wyk-wittduen", "label": "über Wyk auf Föhr nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren über Wyk auf Föhr nach Wittdün auf Amrum. Bitte nehmen Sie Platz." }
+        { "id": "dagebuell-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr." },
+        { "id": "dagebuell-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wittdün auf Amrum." },
+        { "id": "dagebuell-via-wyk-wittduen", "label": "über Wyk auf Föhr nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Wittdün auf Amrum." }
       ]
     },
     {
@@ -49,8 +52,8 @@
         }
       },
       "departureRoutes": [
-        { "id": "wyk-dagebuell", "label": "nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren nach Dagebüll. Bitte nehmen Sie Platz." },
-        { "id": "wyk-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wittdün auf Amrum. Bitte nehmen Sie Platz." }
+        { "id": "wyk-dagebuell", "label": "nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Dagebüll." },
+        { "id": "wyk-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wittdün auf Amrum." }
       ]
     },
     {
@@ -65,9 +68,9 @@
         }
       },
       "departureRoutes": [
-        { "id": "wittduen-dagebuell", "label": "nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren nach Dagebüll. Bitte nehmen Sie Platz." },
-        { "id": "wittduen-wyk", "label": "nach Wyk auf Föhr", "text": "Wir legen jetzt in {hafen} ab und fahren nach Wyk auf Föhr. Bitte nehmen Sie Platz." },
-        { "id": "wittduen-via-wyk-dagebuell", "label": "über Wyk auf Föhr nach Dagebüll", "text": "Wir legen jetzt in {hafen} ab und fahren über Wyk auf Föhr nach Dagebüll. Bitte nehmen Sie Platz." }
+        { "id": "wittduen-dagebuell", "label": "nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Dagebüll." },
+        { "id": "wittduen-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr." },
+        { "id": "wittduen-via-wyk-dagebuell", "label": "über Wyk auf Föhr nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Dagebüll." }
       ]
     }
   ]

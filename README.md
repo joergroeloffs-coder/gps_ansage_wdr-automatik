@@ -13,12 +13,13 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 
 ## Konfiguration (`stations.json`)
 
+- `ship.name`: Schiffsname, Platzhalter `{schiff}` in den Ablege-Ansagen wird damit ersetzt. **Aktuell nur ein Testname ("Schleswig-Holstein") – bitte durch den echten Schiffsnamen ersetzen, sobald der feststeht, und danach die Ablege-Audiodateien neu erzeugen.**
 - `textTemplates.arrival`: Objekt mit einer Vorlage je Anleger-Typ – `ohneSeitenausstieg` und `mitSeitenausstieg`. Platzhalter `{hafen}` wird automatisch durch den Stationsnamen ersetzt. Fehlt eine Vorlage (z.B. `mitSeitenausstieg: null`), wird für Stationen ohne eigenen Text keine Ansage abgespielt (siehe Log-Hinweis).
 - `textTemplates.departure`: Fallback-Ablege-Vorlage für Stationen ohne eigene `departureRoutes` (siehe unten).
 - `stations`: Liste der Häfen/Stationen mit `lat`/`lon` und Einlaufen-Radius. `arrival.texts.<berthType>` überschreibt pro Station die globale Vorlage für einen bestimmten Anleger-Typ (z.B. weil der Hafen eine eigene Formulierung braucht).
 - `arrival.radiusMeters`: Ab dieser Entfernung zum Hafen wird die Einlaufen-Ansage ausgelöst.
 - **Anleger-Typ-Auswahl (mit/ohne Seitenausstieg)**: GPS kann die beiden Anleger je Hafen nicht unterscheiden, da sie zu nah beieinander liegen. Im UI wählt die Crew daher pro Station manuell per Dropdown "Ohne Seitenausstieg" / "Mit Seitenausstieg", bevor der Hafen angelaufen wird. Die Automatik löst weiterhin per GPS aus, spielt aber den zur Auswahl passenden Text.
-- **`departureRoutes`** (pro Station): Liste möglicher Fahrtziele ab diesem Hafen, je mit `id`, `label` (Anzeige im Dropdown) und `text` (Ansagetext, `{hafen}` wird ersetzt). Da mehrere Routen möglich sind (z.B. ab Dagebüll nach Wyk, nach Wittdün, oder über Wyk nach Wittdün), wählt die Crew im UI vor dem Ablegen per Dropdown "Fahrtziel für die nächste Abfahrt" die passende Route – die Ablege-Ansage (Text und Audiodatei) richtet sich danach.
+- **`departureRoutes`** (pro Station): Liste möglicher Fahrtziele ab diesem Hafen, je mit `id`, `label` (Anzeige im Dropdown) und `text` (Ansagetext, Muster "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach/über … {ziel}."). Da mehrere Routen möglich sind (z.B. ab Dagebüll nach Wyk, nach Wittdün, oder über Wyk nach Wittdün), wählt die Crew im UI vor dem Ablegen per Dropdown "Fahrtziel für die nächste Abfahrt" die passende Route – die Ablege-Ansage (Text und Audiodatei) richtet sich danach.
 - `hysteresisFactor`: Verhindert Mehrfachauslösung durch GPS-Schwankungen am Radius-Rand (gilt für Einlaufen).
 - `departureDetection`: globale Ablege-Erkennung (nicht pro Station, siehe unten):
   - `stableRadiusMeters` (Default 20): Umkreis, in dem das Schiff als "still liegend" gilt.
