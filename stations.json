@@ -26,7 +26,7 @@
   },
   "departureDetection": {
     "stableRadiusMeters": 35,
-    "stableDurationMinutes": 7,
+    "stableDurationMinutes": 1.5,
     "driftToleranceSeconds": 60,
     "departureRadiusMeters": 50,
     "departureWindowMinutes": 2,

@@ -24,7 +24,7 @@ Web-App für automatische Bordansagen auf Basis der GPS-Position (Einlaufen/Able
 - `hysteresisFactor`: Verhindert Mehrfachauslösung durch GPS-Schwankungen am Radius-Rand (gilt für Einlaufen).
 - `departureDetection`: globale Ablege-Erkennung (nicht pro Station, siehe unten):
   - `stableRadiusMeters` (Default 35): Umkreis, in dem das Schiff als "still liegend" gilt. Bewusst großzügig, da GPS auf einem Stahlschiff deutlich ungenauer ist als an Land (oft 20–50m statt 5–10m Fehler).
-  - `stableDurationMinutes` (Default 7): So lange muss das Schiff innerhalb von `stableRadiusMeters` bleiben, damit die Position als Ablege-Anker gilt ("angelegt").
+  - `stableDurationMinutes` (Default 1,5 = 90 Sekunden): So lange muss das Schiff innerhalb von `stableRadiusMeters` bleiben, damit die Position als Ablege-Anker gilt ("angelegt").
   - `driftToleranceSeconds` (Default 60): Kurze GPS-Ausreißer über `stableRadiusMeters` hinaus werden bis zu dieser Dauer ignoriert (Messung läuft weiter), statt die 7-Minuten-Messung sofort neu zu starten. Erst wenn die Position durchgehend länger als diese Zeit außerhalb bleibt, gilt das als echte Bewegung.
   - `departureRadiusMeters` (Default 50): Entfernung vom Anker, ab der ein Ablegen erkannt wird.
   - `departureWindowMinutes` (Default 2): Diese Entfernung muss innerhalb dieses Zeitfensters erreicht werden – sonst gilt es als langsames Wegdriften statt echtem Ablegen, und es wird nichts ausgelöst.
