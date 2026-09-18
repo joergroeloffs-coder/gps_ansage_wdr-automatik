@@ -50,9 +50,9 @@
         }
       },
       "departureRoutes": [
-        { "id": "dagebuell-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr.", "fahrplanMatch": { "direkt": false } },
+        { "id": "dagebuell-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr.", "fahrplanMatch": { "leg": "Dagebüll-Wyk", "direkt": false } },
         { "id": "dagebuell-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wittdün auf Amrum." },
-        { "id": "dagebuell-via-wyk-wittduen", "label": "über Wyk auf Föhr nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Wittdün auf Amrum.", "fahrplanMatch": { "direkt": true } }
+        { "id": "dagebuell-via-wyk-wittduen", "label": "über Wyk auf Föhr nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Wittdün auf Amrum.", "fahrplanMatch": { "leg": "Dagebüll-Wyk", "direkt": true } }
       ]
     },
     {
@@ -70,8 +70,8 @@
         }
       },
       "departureRoutes": [
-        { "id": "wyk-dagebuell", "label": "nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Dagebüll.", "fahrplanMatch": { "direkt": false } },
-        { "id": "wyk-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wittdün auf Amrum.", "fahrplanMatch": { "direkt": false } }
+        { "id": "wyk-dagebuell", "label": "nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Dagebüll.", "fahrplanMatch": { "leg": "Wyk-Dagebüll" } },
+        { "id": "wyk-wittduen", "label": "nach Wittdün auf Amrum", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wittdün auf Amrum.", "fahrplanMatch": { "leg": "Wyk-Wittdün" } }
       ]
     },
     {
@@ -90,8 +90,8 @@
       },
       "departureRoutes": [
         { "id": "wittduen-dagebuell", "label": "nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Dagebüll." },
-        { "id": "wittduen-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr.", "fahrplanMatch": { "direkt": false } },
-        { "id": "wittduen-via-wyk-dagebuell", "label": "über Wyk auf Föhr nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Dagebüll.", "fahrplanMatch": { "direkt": true } }
+        { "id": "wittduen-wyk", "label": "nach Wyk auf Föhr", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt nach Wyk auf Föhr.", "fahrplanMatch": { "leg": "Wittdün-Wyk", "direkt": false } },
+        { "id": "wittduen-via-wyk-dagebuell", "label": "über Wyk auf Föhr nach Dagebüll", "text": "Wir begrüßen Sie an Bord der {schiff}. Wir legen jetzt ab zur Überfahrt über Wyk auf Föhr nach Dagebüll.", "fahrplanMatch": { "leg": "Wittdün-Wyk", "direkt": true } }
       ]
     }
   ]

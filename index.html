@@ -616,7 +616,17 @@ function autoRouteForStation(stationCfg) {
   const naechste = passende[0];
 
   const routes = stationCfg.departureRoutes || [];
-  const treffer = routes.find(r => r.fahrplanMatch && r.fahrplanMatch.direkt === naechste.direkt);
+  const treffer = routes.find(r => {
+    const m = r.fahrplanMatch;
+    if (!m) return false;
+    // "leg" ist der tatsächliche Fahrplan-Routentext (z.B. "Wyk-Wittdün") -
+    // wichtig, weil "direkt" allein bei Wyk nicht zwischen den beiden
+    // möglichen Zielen unterscheidet (dort ist "direkt" bei jeder Abfahrt
+    // gleich, das eigentliche Ziel steht nur im Routentext).
+    if (m.leg && m.leg !== naechste.route) return false;
+    if (m.direkt !== undefined && m.direkt !== naechste.direkt) return false;
+    return true;
+  });
   return treffer ? { routeId: treffer.id, quelle: naechste } : null;
 }
 
