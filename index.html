@@ -164,10 +164,56 @@ function templateVars(stationCfg) {
 // (mit/ohne Seitenausstieg). Reihenfolge: stationsspezifischer Text >
 // globale Vorlage > null (= kein Text hinterlegt, keine Ansage möglich).
 function arrivalText(stationCfg, berthType) {
+  const leg = arrivingLegForStation(stationCfg);
+  if (leg && leg.direkt) {
+    const throughOverride = (stationCfg.arrival.throughTexts || {})[berthType];
+    if (throughOverride) {
+      const ziel = throughDestinationFor(stationCfg, leg.route.split('-')[0]);
+      return renderTemplate(throughOverride, { ...templateVars(stationCfg), naechsterHafen: ziel });
+    }
+  }
   const stationOverride = (stationCfg.arrival.texts || {})[berthType];
   if (stationOverride) return renderTemplate(stationOverride, templateVars(stationCfg));
   const tpl = ((state.config.textTemplates || {}).arrival || {})[berthType];
   return tpl ? renderTemplate(tpl, templateVars(stationCfg)) : null;
+}
+
+// Liefert die laut Fahrplan gerade ankommende Teilstrecke dieser Station
+// (z.B. "Dagebüll-Wyk" bei Ankunft in Wyk), oder null, falls keine Abfahrt
+// im relevanten Zeitfenster gefunden wird.
+function arrivingLegForStation(stationCfg) {
+  if (!state.fahrplan || !state.fahrplan.schiffe || !stationCfg.fahrplanHafen) return null;
+  const ship = currentShip();
+  if (!ship) return null;
+  const eintraege = state.fahrplan.schiffe[ship.key] || [];
+
+  const now = new Date();
+  const isoHeute = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+  const nowMinuten = now.getHours() * 60 + now.getMinutes();
+
+  const passende = eintraege
+    .filter(e => e.datum === isoHeute && e.route.endsWith('-' + stationCfg.fahrplanHafen))
+    .map(e => {
+      const [h, m] = e.zeit.split(':').map(Number);
+      return { ...e, minuten: h * 60 + m };
+    })
+    .filter(e => e.minuten <= nowMinuten + 5) // Ankunft steht kurz bevor / ist gerade erfolgt
+    .sort((a, b) => b.minuten - a.minuten);
+
+  return passende.length ? passende[0] : null;
+}
+
+// Bei einer Durchgangsfahrt über Wyk ist das eigentliche Fernziel weder der
+// aktuelle Hafen noch der Herkunftshafen, sondern der jeweils dritte
+// (Dagebüll<->Wittdün). Dafür braucht es keine feste Zuordnung, es reicht,
+// den Hafen zu suchen, der weder Ankunfts- noch Herkunftshafen ist.
+function throughDestinationFor(stationCfg, herkunftFahrplanHafen) {
+  const ziel = (state.config.stations || []).find(s =>
+    s.fahrplanHafen !== stationCfg.fahrplanHafen && s.fahrplanHafen !== herkunftFahrplanHafen
+  );
+  return ziel ? ziel.name : '';
 }
 
 // Liefert die aktuell für diese Station ausgewählte Abfahrts-Route
@@ -202,7 +248,15 @@ function audioVersionSuffix() {
   return v ? `?v=${v}` : '';
 }
 function arrivalAudioUrl(stationCfg, berthType) {
-  return `audio/arrival_${stationCfg.id}_${berthType}.mp3${audioVersionSuffix()}`;
+  const leg = arrivingLegForStation(stationCfg);
+  let suffix = '';
+  if (leg && leg.direkt && (stationCfg.arrival.throughTexts || {})[berthType]) {
+    const zielStation = (state.config.stations || []).find(s =>
+      s.fahrplanHafen !== stationCfg.fahrplanHafen && s.fahrplanHafen !== leg.route.split('-')[0]
+    );
+    suffix = zielStation ? `_durchgang_${zielStation.id}` : '_durchgang';
+  }
+  return `audio/arrival_${stationCfg.id}_${berthType}${suffix}.mp3${audioVersionSuffix()}`;
 }
 // Ablege-Ansagen enthalten den Schiffsnamen ({schiff}) und sind daher pro
 // Schiff als eigene Audiodatei vorproduziert. Für Schiffe, für die noch

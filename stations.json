@@ -1,6 +1,6 @@
 {
   "language": "de-DE",
-  "audioVersion": 4,
+  "audioVersion": 5,
   "hysteresisFactor": 1.5,
   "positionSmoothingSeconds": 15,
   "fleet": [
@@ -67,6 +67,9 @@
         "radiusMeters": 100,
         "texts": {
           "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von {hafen}. Die Pkw-Fahrer bitten wir jetzt schon mal zu den Fahrzeugen. Fußgänger steigen hier bitte wieder über den Seitenausstieg auf Höhe des Salondecks aus. Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen. Ende der Durchsage."
+        },
+        "throughTexts": {
+          "mitSeitenausstieg": "Sehr geehrte Fahrgäste, in Kürze erreichen wir den Hafen von Wyk auf Föhr. Pkw-Fahrer mit dem Ziel Wyk bitten wir jetzt schon mal zu den Fahrzeugen. Für die Fußgänger steht hier der Seitenausstieg auf Höhe des Salondecks zur Verfügung. Wir wünschen einen angenehmen Aufenthalt und sagen auf Wiedersehen. Nach einem kurzen Zwischenstopp geht es dann mit uns weiter nach {naechsterHafen}."
         }
       },
       "departureRoutes": [
